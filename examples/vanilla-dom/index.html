@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>time-aware-theme — vanilla DOM demo</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: var(--tat-background);
+        color: var(--tat-foreground);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        transition:
+          background-color 0.35s ease,
+          color 0.35s ease;
+      }
+
+      .card {
+        width: min(90vw, 440px);
+        padding: 2rem;
+        border-radius: 20px;
+        border: 1px solid var(--tat-accent);
+        text-align: center;
+      }
+
+      .clock {
+        font-size: 3.5rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--tat-accent);
+        margin: 0;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .phase {
+        margin: 0.25rem 0 1.5rem;
+        opacity: 0.75;
+        text-transform: capitalize;
+      }
+
+      .swatches {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .swatch {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        opacity: 0.8;
+      }
+
+      .swatch-color {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid currentColor;
+      }
+
+      input[type='range'] {
+        width: 100%;
+        accent-color: var(--tat-accent);
+        margin: 0.5rem 0 1.5rem;
+      }
+
+      .modes {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-bottom: 1rem;
+      }
+
+      button {
+        font: inherit;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        border: 1px solid var(--tat-accent);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      button[aria-pressed='true'] {
+        background: var(--tat-accent);
+        color: var(--tat-background);
+      }
+
+      #play-button {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <p class="clock" id="clock-label">00:00</p>
+      <p class="phase" id="phase-label">night · time-aware</p>
+
+      <div class="swatches">
+        <span class="swatch"
+          ><span class="swatch-color" id="swatch-background"></span
+          >background</span
+        >
+        <span class="swatch"
+          ><span class="swatch-color" id="swatch-foreground"></span
+          >foreground</span
+        >
+        <span class="swatch"
+          ><span class="swatch-color" id="swatch-accent"></span>accent</span
+        >
+      </div>
+
+      <input
+        type="range"
+        id="minute-slider"
+        min="0"
+        max="1439"
+        step="1"
+        aria-label="Minute of the day"
+      />
+
+      <div class="modes">
+        <button type="button" data-mode="time-aware">Auto</button>
+        <button type="button" data-mode="light">Light</button>
+        <button type="button" data-mode="dark">Dark</button>
+      </div>
+
+      <button type="button" id="play-button">▶ Play 24h</button>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
