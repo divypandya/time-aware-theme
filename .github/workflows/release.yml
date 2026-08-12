@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, for example time-aware-theme-v0.1.0'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'time-aware-theme-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm install
+      - run: node scripts/check-release-version.mjs
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+      - run: npm run build
+      - run: npm test
+      - run: npm publish
