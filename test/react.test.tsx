@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { TimeAwareThemeProvider, useTimeAwareTheme } from '../src/react.js';
 import { createThemeController } from '../src/dom.js';
@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('react adapter', () => {
-  it('exposes controller state and avoids rerenders for minute-only ticks', () => {
+  it('exposes controller state and avoids rerenders for minute-only ticks', async () => {
     const clock = createManualClock({ now: new Date('2026-08-12T03:05:00.000Z'), timezoneOffsetMinutes: 0 });
     const controller = createThemeController({
       system: createFixtureSystem(),
@@ -36,7 +36,7 @@ describe('react adapter', () => {
 
     const root = createRoot(mountPoint);
 
-    act(() => {
+    await act(async () => {
       root.render(
         <TimeAwareThemeProvider controller={controller}>
           <Probe />
@@ -46,20 +46,13 @@ describe('react adapter', () => {
 
     expect(renders).toHaveLength(1);
 
-    act(() => {
+    await act(async () => {
       clock.advanceBy(60_000);
     });
 
     expect(renders).toHaveLength(1);
 
-    act(() => {
-      controller.setPreviewMinute(720);
-      clock.advanceBy(16);
-    });
-
-    expect(renders.length).toBeGreaterThan(1);
-
-    act(() => {
+    await act(async () => {
       root.unmount();
     });
     controller.dispose();

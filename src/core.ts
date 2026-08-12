@@ -88,7 +88,7 @@ export function defineThemeSystem<TTokens extends ThemeTokens, TPhase extends st
   validateSortedUniqueStops(stops);
 
   return deepFreeze({
-    name: input.name,
+    ...(input.name ? { name: input.name } : {}),
     tokenKeys,
     staticThemes: {
       light: normalizedLight,
@@ -107,6 +107,9 @@ export function resolveThemeAt<TPhase extends string = string>(
 
   if (stops.length === 1) {
     const stop = stops[0];
+    if (!stop) {
+      throw new Error('Invalid stop set.');
+    }
     return freezeSnapshot({
       mode: 'time-aware',
       appearance: stop.appearance,
@@ -157,7 +160,7 @@ export function resolveThemeSnapshot<TPhase extends string = string>(
       minute: normalizeMinute(minute),
       tokens,
       cssText: toCssText(system.tokenKeys, tokens)
-    });
+    }) as ThemeSnapshot<TPhase>;
   }
 
   return resolveThemeAt(system, minute);
@@ -221,7 +224,11 @@ function normalizeTokenMap<TTokens extends ThemeTokens>(
 
   const normalized: Record<string, OklchColor> = {};
   for (const key of tokenKeys) {
-    normalized[key] = normalizeOklch((input as ThemeTokens)[key], `${label}.${key}`);
+    const token = (input as Record<string, OklchInput>)[key];
+    if (token === undefined) {
+      throw new TypeError(`${label}.${key} is missing.`);
+    }
+    normalized[key] = normalizeOklch(token, `${label}.${key}`);
   }
 
   return deepFreeze(normalized);
@@ -281,7 +288,10 @@ function parseOklchString(input: string, label: string): OklchColor {
     throw new TypeError(`${label} must be a valid oklch() string.`);
   }
 
-  const content = match[1].trim();
+  const content = match[1]?.trim();
+  if (!content) {
+    throw new TypeError(`${label} must contain OKLCH channels.`);
+  }
   const [spaceSeparated, alphaPart] = splitAlpha(content);
   const channels = spaceSeparated.trim().split(/\s+/);
 
@@ -290,6 +300,9 @@ function parseOklchString(input: string, label: string): OklchColor {
   }
 
   const [lRaw, cRaw, hRaw] = channels;
+  if (!lRaw || !cRaw || !hRaw) {
+    throw new TypeError(`${label} must contain lightness, chroma, and hue.`);
+  }
   const l = parseLightness(lRaw, `${label}.l`);
   const c = parseChroma(cRaw, `${label}.c`);
   const h = parseHue(hRaw, `${label}.h`);

@@ -70,11 +70,11 @@ export function createThemeController<TPhase extends string = string>(
   let offsetMinutes = clock.now().getTimezoneOffset();
   let lastAppliedCssText = '';
   let lastAppliedAppearance: ThemeAppearance | null = null;
-  let currentSnapshot: ThemeControllerSnapshot<TPhase> = freezeControllerSnapshot({
+  let currentSnapshot = freezeControllerSnapshot({
     mode,
     appearance: mode === 'dark' ? 'dark' : 'light',
     phase: 'static'
-  });
+  }) as ThemeControllerSnapshot<TPhase>;
   const listeners = new Set<(snapshot: ThemeControllerSnapshot<TPhase>) => void>();
   const detachListeners: Array<() => void> = [];
 
@@ -192,7 +192,7 @@ export function createThemeController<TPhase extends string = string>(
     });
 
     if (!snapshotEquals(currentSnapshot, nextSummary)) {
-      currentSnapshot = nextSummary;
+      currentSnapshot = nextSummary as ThemeControllerSnapshot<TPhase>;
       emitSnapshot();
     }
 

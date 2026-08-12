@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm install
+      - run: npm ci
       - run: node scripts/check-release-version.mjs
         env:
           INPUT_TAG: ${{ inputs.tag }}

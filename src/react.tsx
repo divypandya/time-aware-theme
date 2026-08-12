@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { ThemeController, ThemeControllerSnapshot } from './dom.js';
 
 export interface TimeAwareThemeContextValue<TPhase extends string = string> extends ThemeControllerSnapshot<TPhase> {
@@ -18,11 +18,9 @@ export function TimeAwareThemeProvider<TPhase extends string = string>({
   controller,
   children
 }: TimeAwareThemeProviderProps<TPhase>): React.ReactElement {
-  const snapshot = useSyncExternalStore(
-    (onStoreChange) => controller.subscribe(() => onStoreChange()),
-    controller.getSnapshot,
-    controller.getSnapshot
-  );
+  const [snapshot, setSnapshot] = useState(() => controller.getSnapshot());
+
+  useEffect(() => controller.subscribe(setSnapshot), [controller]);
 
   const value = useMemo<TimeAwareThemeContextValue<TPhase>>(
     () => ({

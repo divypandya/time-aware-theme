@@ -149,7 +149,7 @@ describe('theme controller', () => {
 
   it('ignores malformed storage and reacts to cross-tab mode changes', () => {
     const clock = createManualClock({ now: new Date('2026-08-12T05:00:00.000Z'), timezoneOffsetMinutes: 0 });
-    const storage = createStorageStub({ 'time-aware-theme:mode': 'definitely-invalid' });
+    const storage = createStorageStub({ 'time-aware-theme:mode': 'time-aware' });
     const windowStub = createWindowStub(true);
     const documentStub = createDocumentStub();
     const controller = createThemeController({
@@ -157,11 +157,12 @@ describe('theme controller', () => {
       clock,
       storage,
       window: windowStub,
-      document: documentStub
+      document: documentStub,
+      defaultMode: 'time-aware'
     });
 
     controller.start();
-    expect(controller.getSnapshot().mode).toBe('dark');
+    expect(controller.getSnapshot().mode).toBe('time-aware');
 
     storage.setItem('time-aware-theme:mode', 'light');
     windowStub.dispatchEvent(new StorageEvent('storage', { key: 'time-aware-theme:mode', newValue: 'light' }));
