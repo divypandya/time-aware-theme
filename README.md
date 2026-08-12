@@ -10,6 +10,13 @@ the day to interpolated [OKLCH](https://oklch.com/) tokens, a framework-free
 DOM controller that applies them, a React adapter, and deterministic testing
 utilities for simulating the clock.
 
+![Recording of the theme cycling through a full day, driven by the real DOM controller](assets/demo.gif)
+
+Recording of [examples/vanilla-dom](examples/vanilla-dom): dragging the
+time-of-day slider (or hitting **Play 24h**) calls the real
+`createThemeController`, which writes the `--tat-*` custom properties you see
+updating live — this isn't a mockup.
+
 ## Stats
 
 |                                       |                                                                            |
@@ -88,14 +95,16 @@ const system = defineThemeSystem({
 
 Create and start the DOM controller before mounting React so the first paint
 already reflects the correct theme. The controller writes tokens as CSS custom
-properties, toggles the `.dark` class, and updates `color-scheme`.
+properties, toggles the `.dark` class, and updates `color-scheme`. It only
+touches the DOM once you pass it `document`/`window` explicitly — without
+them it stays inert (safe to construct during SSR).
 
 ```tsx
 import { createRoot } from 'react-dom/client';
 import { createThemeController } from '@divypandya/time-aware-theme/dom';
 import { TimeAwareThemeProvider } from '@divypandya/time-aware-theme/react';
 
-const controller = createThemeController({ system });
+const controller = createThemeController({ system, document, window });
 controller.start();
 
 createRoot(document.getElementById('root')!).render(
@@ -149,6 +158,18 @@ controller.start();
 clock.advanceBy(60 * 60_000); // fast-forward one hour
 controller.getSnapshot().phase;
 ```
+
+## Examples
+
+Runnable demo apps live under [examples/](examples), each with its own
+README covering setup:
+
+- [examples/vanilla-dom](examples/vanilla-dom) — zero-build, plain DOM +
+  `createThemeController`, the source of the recording above.
+- [examples/react](examples/react) — Vite + React app using
+  `TimeAwareThemeProvider` / `useTimeAwareTheme`, consuming the package the
+  same way a real installer would (`file:../..` dependency, not a relative
+  `src` import).
 
 ## Entry points
 
