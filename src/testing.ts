@@ -25,9 +25,12 @@ interface ScheduledTimer {
   readonly callback: (timestamp?: number) => void;
 }
 
-export function createManualClock(options: ManualClockOptions = {}): ManualClock {
+export function createManualClock(
+  options: ManualClockOptions = {}
+): ManualClock {
   let currentTime = normalizeTime(options.now ?? Date.now());
-  let timezoneOffsetMinutes = options.timezoneOffsetMinutes ?? new Date(currentTime).getTimezoneOffset();
+  let timezoneOffsetMinutes =
+    options.timezoneOffsetMinutes ?? new Date(currentTime).getTimezoneOffset();
   let nextId = 1;
   const timers = new Map<number, ScheduledTimer>();
 
@@ -50,13 +53,17 @@ export function createManualClock(options: ManualClockOptions = {}): ManualClock
     timers.delete(handle);
   }
 
-  function requestAnimationFrame(callback: (timestamp: number) => void): number {
+  function requestAnimationFrame(
+    callback: (timestamp: number) => void
+  ): number {
     const id = nextId++;
     timers.set(id, {
       id,
       kind: 'raf',
       time: currentTime + 16,
-      callback: () => callback(currentTime)
+      callback: () => {
+        callback(currentTime);
+      }
     });
     return id;
   }
@@ -170,4 +177,3 @@ class ManualDate extends Date {
 function normalizeTime(input: number | Date): number {
   return input instanceof Date ? input.getTime() : Math.trunc(input);
 }
-

@@ -31,8 +31,8 @@ export function createFixtureSystem() {
         appearance: 'dark',
         phase: 'pre-dawn',
         tokens: {
-          background: 'oklch(0.18 0.03 265 / 1)',
-          foreground: 'oklch(0.95 0.01 265 / 1)',
+          background: 'oklch(0.14 0.03 265 / 1)',
+          foreground: 'oklch(0.98 0.01 265 / 1)',
           accent: 'oklch(0.70 0.13 310 / 1)'
         }
       },
@@ -41,8 +41,8 @@ export function createFixtureSystem() {
         appearance: 'light',
         phase: 'dawn',
         tokens: {
-          background: 'oklch(0.92 0.02 75 / 1)',
-          foreground: 'oklch(0.18 0.03 75 / 1)',
+          background: 'oklch(0.99 0.02 75 / 1)',
+          foreground: 'oklch(0.10 0.03 75 / 1)',
           accent: 'oklch(0.68 0.16 55 / 1)'
         }
       },
@@ -99,4 +99,3 @@ export function createFixtureSystem() {
     ]
   });
 }
-

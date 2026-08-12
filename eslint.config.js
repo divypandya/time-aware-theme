@@ -21,9 +21,23 @@ export default tseslint.config(
       }
     },
     rules: {
-      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
-      '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: false }],
-      '@typescript-eslint/no-empty-function': 'off'
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports' }
+      ],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: false }
+      ],
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        { allowNumber: true }
+      ]
     }
+  },
+  {
+    files: ['eslint.config.js', 'scripts/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked]
   }
 );
