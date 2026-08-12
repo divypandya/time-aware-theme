@@ -1,4 +1,11 @@
-import { normalizeMinute, resolveThemeSnapshot, type ThemeAppearance, type ThemeMode, type ThemeSnapshot, type ThemeSystem } from './core.js';
+import {
+  normalizeMinute,
+  resolveThemeSnapshot,
+  type ThemeAppearance,
+  type ThemeMode,
+  type ThemeSnapshot,
+  type ThemeSystem
+} from './core.js';
 
 export interface Clock {
   now(): Date;
@@ -42,7 +49,9 @@ export interface ThemeController<TPhase extends string = string> {
   readonly setPreviewMinute: (minute: number | null) => void;
   readonly clearPreview: () => void;
   readonly getSnapshot: () => ThemeControllerSnapshot<TPhase>;
-  readonly subscribe: (listener: (snapshot: ThemeControllerSnapshot<TPhase>) => void) => () => void;
+  readonly subscribe: (
+    listener: (snapshot: ThemeControllerSnapshot<TPhase>) => void
+  ) => () => void;
 }
 
 const DEFAULT_STORAGE_KEY = 'time-aware-theme:mode';
@@ -61,9 +70,12 @@ export function createThemeController<TPhase extends string = string>(
 
   let started = false;
   let disposed = false;
-  let mode: ThemeMode = options.defaultMode ?? detectPreferredMode(win) ?? 'light';
+  let mode: ThemeMode =
+    options.defaultMode ?? detectPreferredMode(win) ?? 'light';
   let previewMinute: number | null = null;
-  let liveMinute = normalizeMinute(clock.now().getHours() * 60 + clock.now().getMinutes());
+  let liveMinute = normalizeMinute(
+    clock.now().getHours() * 60 + clock.now().getMinutes()
+  );
   let minuteTimer: unknown = null;
   let rafHandle: unknown = null;
   let rafQueued = false;
@@ -75,7 +87,9 @@ export function createThemeController<TPhase extends string = string>(
     appearance: mode === 'dark' ? 'dark' : 'light',
     phase: 'static'
   }) as ThemeControllerSnapshot<TPhase>;
-  const listeners = new Set<(snapshot: ThemeControllerSnapshot<TPhase>) => void>();
+  const listeners = new Set<
+    (snapshot: ThemeControllerSnapshot<TPhase>) => void
+  >();
   const detachListeners: Array<() => void> = [];
 
   function start(): ThemeControllerSnapshot<TPhase> {
@@ -87,7 +101,11 @@ export function createThemeController<TPhase extends string = string>(
     }
 
     started = true;
-    mode = loadModeFromStorage(storage, storageKey) ?? options.defaultMode ?? detectPreferredMode(win) ?? 'light';
+    mode =
+      loadModeFromStorage(storage, storageKey) ??
+      options.defaultMode ??
+      detectPreferredMode(win) ??
+      'light';
     previewMinute = null;
     updateFromCurrentTime('start');
     if (mode === 'time-aware') {
@@ -152,7 +170,9 @@ export function createThemeController<TPhase extends string = string>(
     return currentSnapshot;
   }
 
-  function subscribe(listener: (snapshot: ThemeControllerSnapshot<TPhase>) => void): () => void {
+  function subscribe(
+    listener: (snapshot: ThemeControllerSnapshot<TPhase>) => void
+  ): () => void {
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
@@ -166,7 +186,9 @@ export function createThemeController<TPhase extends string = string>(
 
     const now = clock.now();
     const currentOffset = now.getTimezoneOffset();
-    const normalizedLiveMinute = normalizeMinute(now.getHours() * 60 + now.getMinutes());
+    const normalizedLiveMinute = normalizeMinute(
+      now.getHours() * 60 + now.getMinutes()
+    );
 
     if (mode === 'time-aware') {
       liveMinute = normalizedLiveMinute;
@@ -184,7 +206,11 @@ export function createThemeController<TPhase extends string = string>(
 
   function applyResolvedState(reason: string): void {
     const effectiveMinute = previewMinute ?? liveMinute;
-    const resolved = resolveThemeSnapshot(options.system, mode, effectiveMinute);
+    const resolved = resolveThemeSnapshot(
+      options.system,
+      mode,
+      effectiveMinute
+    );
     const nextSummary = freezeControllerSnapshot({
       mode,
       appearance: resolved.appearance,
@@ -229,7 +255,10 @@ export function createThemeController<TPhase extends string = string>(
 
     const style = root.style;
     for (const key of options.system.tokenKeys) {
-      style.setProperty(`--${prefix}-${key}`, serializeToken(snapshot.tokens[key] ?? failMissingToken(key)));
+      style.setProperty(
+        `--${prefix}-${key}`,
+        serializeToken(snapshot.tokens[key] ?? failMissingToken(key))
+      );
     }
     root.classList.toggle('dark', snapshot.appearance === 'dark');
     style.setProperty('color-scheme', snapshot.appearance);
@@ -335,7 +364,9 @@ export function createThemeController<TPhase extends string = string>(
     win.addEventListener('focus', onFocus);
     win.addEventListener('storage', onStorage);
 
-    detachListeners.push(() => doc.removeEventListener('visibilitychange', onVisibilityChange));
+    detachListeners.push(() =>
+      doc.removeEventListener('visibilitychange', onVisibilityChange)
+    );
     detachListeners.push(() => win.removeEventListener('pageshow', onPageShow));
     detachListeners.push(() => win.removeEventListener('focus', onFocus));
     detachListeners.push(() => win.removeEventListener('storage', onStorage));
@@ -355,7 +386,11 @@ export function createThemeController<TPhase extends string = string>(
   }
 
   function assertValidMode(candidate: string): asserts candidate is ThemeMode {
-    if (candidate !== 'light' && candidate !== 'dark' && candidate !== 'time-aware') {
+    if (
+      candidate !== 'light' &&
+      candidate !== 'dark' &&
+      candidate !== 'time-aware'
+    ) {
       throw new TypeError(`Invalid theme mode: ${candidate}`);
     }
   }
@@ -364,7 +399,11 @@ export function createThemeController<TPhase extends string = string>(
     left: ThemeControllerSnapshot<TPhase>,
     right: ThemeControllerSnapshot<TPhase>
   ): boolean {
-    return left.mode === right.mode && left.appearance === right.appearance && left.phase === right.phase;
+    return (
+      left.mode === right.mode &&
+      left.appearance === right.appearance &&
+      left.phase === right.phase
+    );
   }
 
   return {
@@ -378,7 +417,12 @@ export function createThemeController<TPhase extends string = string>(
   };
 }
 
-function serializeToken(color: { readonly l: number; readonly c: number; readonly h: number | null; readonly alpha: number }): string {
+function serializeToken(color: {
+  readonly l: number;
+  readonly c: number;
+  readonly h: number | null;
+  readonly alpha: number;
+}): string {
   return `oklch(${formatNumber(color.l)} ${formatNumber(color.c)} ${color.h === null ? 'none' : formatNumber(color.h)} / ${formatNumber(color.alpha)})`;
 }
 
@@ -388,11 +432,15 @@ function failMissingToken(key: string): never {
 
 function formatNumber(value: number): string {
   const rounded = Math.round(value * 100000) / 100000;
-  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(5).replace(/0+$/, '').replace(/\.$/, '');
+  const text = Number.isInteger(rounded)
+    ? String(rounded)
+    : rounded.toFixed(5).replace(/0+$/, '').replace(/\.$/, '');
   return text === '-0' ? '0' : text;
 }
 
-function freezeControllerSnapshot<TPhase extends string>(snapshot: ThemeControllerSnapshot<TPhase>): ThemeControllerSnapshot<TPhase> {
+function freezeControllerSnapshot<TPhase extends string>(
+  snapshot: ThemeControllerSnapshot<TPhase>
+): ThemeControllerSnapshot<TPhase> {
   return Object.freeze({ ...snapshot });
 }
 
@@ -404,7 +452,10 @@ function safeStorageFromWindow(win: Window | null): StorageLike | null {
   }
 }
 
-function loadModeFromStorage(storage: StorageLike | null, key: string): ThemeMode | null {
+function loadModeFromStorage(
+  storage: StorageLike | null,
+  key: string
+): ThemeMode | null {
   if (!storage) {
     return null;
   }
@@ -420,7 +471,11 @@ function loadModeFromStorage(storage: StorageLike | null, key: string): ThemeMod
   return null;
 }
 
-function persistMode(storage: StorageLike | null, key: string, mode: ThemeMode): void {
+function persistMode(
+  storage: StorageLike | null,
+  key: string,
+  mode: ThemeMode
+): void {
   if (!storage) {
     return;
   }
@@ -449,7 +504,8 @@ function createScheduler(win: Window | null): AnimationScheduler | null {
   if (win?.requestAnimationFrame && win.cancelAnimationFrame) {
     return {
       requestAnimationFrame: (callback) => win.requestAnimationFrame(callback),
-      cancelAnimationFrame: (handle) => win.cancelAnimationFrame(handle as number)
+      cancelAnimationFrame: (handle) =>
+        win.cancelAnimationFrame(handle as number)
     };
   }
 

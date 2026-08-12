@@ -1,7 +1,16 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode
+} from 'react';
 import type { ThemeController, ThemeControllerSnapshot } from './dom.js';
 
-export interface TimeAwareThemeContextValue<TPhase extends string = string> extends ThemeControllerSnapshot<TPhase> {
+export interface TimeAwareThemeContextValue<
+  TPhase extends string = string
+> extends ThemeControllerSnapshot<TPhase> {
   readonly setMode: ThemeController<TPhase>['setMode'];
   readonly setPreviewMinute: ThemeController<TPhase>['setPreviewMinute'];
   readonly clearPreview: ThemeController<TPhase>['clearPreview'];
@@ -12,7 +21,8 @@ export interface TimeAwareThemeProviderProps<TPhase extends string = string> {
   readonly children: ReactNode;
 }
 
-const TimeAwareThemeContext = createContext<TimeAwareThemeContextValue<string> | null>(null);
+const TimeAwareThemeContext =
+  createContext<TimeAwareThemeContextValue<string> | null>(null);
 
 export function TimeAwareThemeProvider<TPhase extends string = string>({
   controller,
@@ -32,13 +42,21 @@ export function TimeAwareThemeProvider<TPhase extends string = string>({
     [controller, snapshot]
   );
 
-  return <TimeAwareThemeContext.Provider value={value}>{children}</TimeAwareThemeContext.Provider>;
+  return (
+    <TimeAwareThemeContext.Provider value={value}>
+      {children}
+    </TimeAwareThemeContext.Provider>
+  );
 }
 
-export function useTimeAwareTheme<TPhase extends string = string>(): TimeAwareThemeContextValue<TPhase> {
+export function useTimeAwareTheme<
+  TPhase extends string = string
+>(): TimeAwareThemeContextValue<TPhase> {
   const value = useContext(TimeAwareThemeContext);
   if (!value) {
-    throw new Error('useTimeAwareTheme() must be used within a TimeAwareThemeProvider.');
+    throw new Error(
+      'useTimeAwareTheme() must be used within a TimeAwareThemeProvider.'
+    );
   }
   return value as TimeAwareThemeContextValue<TPhase>;
 }

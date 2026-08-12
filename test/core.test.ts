@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { defineThemeSystem, normalizeMinute, resolveThemeAt } from '../src/core.js';
+import {
+  defineThemeSystem,
+  normalizeMinute,
+  resolveThemeAt
+} from '../src/core.js';
 import { createFixtureSystem } from './fixture.js';
 
 describe('core', () => {
@@ -94,4 +98,3 @@ describe('core', () => {
     expect(halfWay.cssText).toContain('--swatch: oklch(');
   });
 });
-

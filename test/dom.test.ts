@@ -21,11 +21,17 @@ function createWindowStub(matchDark = true) {
   const listeners = new Map<string, Set<EventListenerOrEventListenerObject>>();
   return {
     matchMedia: () => ({ matches: matchDark }),
-    addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
+    addEventListener: (
+      type: string,
+      listener: EventListenerOrEventListenerObject
+    ) => {
       if (!listeners.has(type)) listeners.set(type, new Set());
       listeners.get(type)!.add(listener);
     },
-    removeEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
+    removeEventListener: (
+      type: string,
+      listener: EventListenerOrEventListenerObject
+    ) => {
       listeners.get(type)?.delete(listener);
     },
     dispatchEvent: (event: Event) => {
@@ -59,11 +65,17 @@ function createDocumentStub() {
   return {
     documentElement: root,
     visibilityState: 'visible',
-    addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
+    addEventListener: (
+      type: string,
+      listener: EventListenerOrEventListenerObject
+    ) => {
       if (!listeners.has(type)) listeners.set(type, new Set());
       listeners.get(type)!.add(listener);
     },
-    removeEventListener: (type: string, listener: EventListenerOrEventListenerObject) => {
+    removeEventListener: (
+      type: string,
+      listener: EventListenerOrEventListenerObject
+    ) => {
       listeners.get(type)?.delete(listener);
     },
     dispatchEvent: (event: Event) => {
@@ -91,7 +103,10 @@ afterEach(() => {
 
 describe('theme controller', () => {
   it('starts from stored mode and writes DOM state', () => {
-    const clock = createManualClock({ now: new Date('2026-08-12T06:05:00.000Z'), timezoneOffsetMinutes: 0 });
+    const clock = createManualClock({
+      now: new Date('2026-08-12T06:05:00.000Z'),
+      timezoneOffsetMinutes: 0
+    });
     const storage = createStorageStub({ 'time-aware-theme:mode': 'dark' });
     const windowStub = createWindowStub(true);
     const documentStub = createDocumentStub();
@@ -106,7 +121,11 @@ describe('theme controller', () => {
 
     controller.start();
 
-    expect(controller.getSnapshot()).toMatchObject({ mode: 'dark', appearance: 'dark', phase: 'static' });
+    expect(controller.getSnapshot()).toMatchObject({
+      mode: 'dark',
+      appearance: 'dark',
+      phase: 'static'
+    });
     expect(storage.snapshot()['time-aware-theme:mode']).toBe('dark');
     expect(documentStub.documentElement.dataset.themeMode).toBe('dark');
     expect(documentStub.styleProps.get('--tat-background')).toContain('oklch(');
@@ -115,8 +134,13 @@ describe('theme controller', () => {
   });
 
   it('aligns minute ticks and survives preview toggles', () => {
-    const clock = createManualClock({ now: new Date('2026-08-12T05:59:30.000Z'), timezoneOffsetMinutes: 0 });
-    const storage = createStorageStub({ 'time-aware-theme:mode': 'time-aware' });
+    const clock = createManualClock({
+      now: new Date('2026-08-12T05:59:30.000Z'),
+      timezoneOffsetMinutes: 0
+    });
+    const storage = createStorageStub({
+      'time-aware-theme:mode': 'time-aware'
+    });
     const windowStub = createWindowStub(false);
     const documentStub = createDocumentStub();
 
@@ -148,8 +172,13 @@ describe('theme controller', () => {
   });
 
   it('ignores malformed storage and reacts to cross-tab mode changes', () => {
-    const clock = createManualClock({ now: new Date('2026-08-12T05:00:00.000Z'), timezoneOffsetMinutes: 0 });
-    const storage = createStorageStub({ 'time-aware-theme:mode': 'time-aware' });
+    const clock = createManualClock({
+      now: new Date('2026-08-12T05:00:00.000Z'),
+      timezoneOffsetMinutes: 0
+    });
+    const storage = createStorageStub({
+      'time-aware-theme:mode': 'time-aware'
+    });
     const windowStub = createWindowStub(true);
     const documentStub = createDocumentStub();
     const controller = createThemeController({
@@ -165,7 +194,12 @@ describe('theme controller', () => {
     expect(controller.getSnapshot().mode).toBe('time-aware');
 
     storage.setItem('time-aware-theme:mode', 'light');
-    windowStub.dispatchEvent(new StorageEvent('storage', { key: 'time-aware-theme:mode', newValue: 'light' }));
+    windowStub.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'time-aware-theme:mode',
+        newValue: 'light'
+      })
+    );
     expect(controller.getSnapshot().mode).toBe('light');
 
     cleanup = () => controller.dispose();

@@ -14,14 +14,20 @@ export interface OklchColor {
 export type OklchInput = string | Partial<OklchColor>;
 export type ThemeTokens = Record<string, OklchInput>;
 
-export interface ThemeStopInput<TTokens extends ThemeTokens = ThemeTokens, TPhase extends string = string> {
+export interface ThemeStopInput<
+  TTokens extends ThemeTokens = ThemeTokens,
+  TPhase extends string = string
+> {
   readonly minute: number;
   readonly appearance: ThemeAppearance;
   readonly phase: TPhase;
   readonly tokens: TTokens;
 }
 
-export interface ThemeSystemInput<TTokens extends ThemeTokens = ThemeTokens, TPhase extends string = string> {
+export interface ThemeSystemInput<
+  TTokens extends ThemeTokens = ThemeTokens,
+  TPhase extends string = string
+> {
   readonly name?: string;
   readonly staticThemes: {
     readonly light: TTokens;
@@ -61,14 +67,17 @@ export interface ThemeCssSnapshot {
   readonly cssText: string;
 }
 
-export function defineThemeSystem<TTokens extends ThemeTokens, TPhase extends string = string>(
-  input: ThemeSystemInput<TTokens, TPhase>
-): ThemeSystem<TPhase> {
+export function defineThemeSystem<
+  TTokens extends ThemeTokens,
+  TPhase extends string = string
+>(input: ThemeSystemInput<TTokens, TPhase>): ThemeSystem<TPhase> {
   if (!input?.staticThemes) {
     throw new TypeError('defineThemeSystem() requires staticThemes.');
   }
   if (!input.staticThemes.light || !input.staticThemes.dark) {
-    throw new TypeError('defineThemeSystem() requires both light and dark static themes.');
+    throw new TypeError(
+      'defineThemeSystem() requires both light and dark static themes.'
+    );
   }
 
   const lightKeys = objectKeys(input.staticThemes.light);
@@ -77,10 +86,20 @@ export function defineThemeSystem<TTokens extends ThemeTokens, TPhase extends st
   }
 
   const tokenKeys = freezeArray(lightKeys);
-  const normalizedLight = normalizeTokenMap(input.staticThemes.light, tokenKeys, 'staticThemes.light');
-  const normalizedDark = normalizeTokenMap(input.staticThemes.dark, tokenKeys, 'staticThemes.dark');
+  const normalizedLight = normalizeTokenMap(
+    input.staticThemes.light,
+    tokenKeys,
+    'staticThemes.light'
+  );
+  const normalizedDark = normalizeTokenMap(
+    input.staticThemes.dark,
+    tokenKeys,
+    'staticThemes.dark'
+  );
 
-  const stops = input.stops.map((stop, index) => normalizeStop(stop, tokenKeys, index));
+  const stops = input.stops.map((stop, index) =>
+    normalizeStop(stop, tokenKeys, index)
+  );
   if (stops.length === 0) {
     throw new TypeError('defineThemeSystem() requires at least one stop.');
   }
@@ -132,7 +151,10 @@ export function resolveThemeAt<TPhase extends string = string>(
     });
   }
 
-  const { previous, next, span, elapsed } = findBracketingStops(stops, normalizedMinute);
+  const { previous, next, span, elapsed } = findBracketingStops(
+    stops,
+    normalizedMinute
+  );
   const t = span === 0 ? 0 : elapsed / span;
   const tokens = interpolateTokenMap(previous.tokens, next.tokens, t);
 
@@ -178,7 +200,8 @@ export function normalizeMinute(minute: number): number {
   }
 
   const rounded = Math.trunc(minute);
-  const normalized = ((rounded % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  const normalized =
+    ((rounded % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
   return normalized;
 }
 
@@ -192,7 +215,11 @@ function normalizeStop<TTokens extends ThemeTokens, TPhase extends string>(
   }
 
   const minute = normalizeMinute(input.minute);
-  const tokens = normalizeTokenMap(input.tokens, tokenKeys, `stops[${index}].tokens`);
+  const tokens = normalizeTokenMap(
+    input.tokens,
+    tokenKeys,
+    `stops[${index}].tokens`
+  );
 
   if (input.appearance !== 'light' && input.appearance !== 'dark') {
     throw new TypeError(`Stop ${index} appearance must be "light" or "dark".`);
@@ -234,9 +261,15 @@ function normalizeTokenMap<TTokens extends ThemeTokens>(
   return deepFreeze(normalized);
 }
 
-function validateTokenKeys(keys: readonly string[], tokenKeys: readonly string[], label: string): void {
+function validateTokenKeys(
+  keys: readonly string[],
+  tokenKeys: readonly string[],
+  label: string
+): void {
   if (keys.length !== tokenKeys.length) {
-    throw new TypeError(`${label} must contain exactly ${tokenKeys.length} token keys.`);
+    throw new TypeError(
+      `${label} must contain exactly ${tokenKeys.length} token keys.`
+    );
   }
 
   const expected = new Set(tokenKeys);
@@ -247,18 +280,24 @@ function validateTokenKeys(keys: readonly string[], tokenKeys: readonly string[]
   }
 }
 
-function validateSortedUniqueStops<TPhase extends string>(stops: readonly NormalizedThemeStop<TPhase>[]): void {
+function validateSortedUniqueStops<TPhase extends string>(
+  stops: readonly NormalizedThemeStop<TPhase>[]
+): void {
   let previousMinute = -1;
   const seen = new Set<number>();
 
   for (const stop of stops) {
     if (seen.has(stop.minute)) {
-      throw new TypeError(`Duplicate stop minute ${stop.minute} is not allowed.`);
+      throw new TypeError(
+        `Duplicate stop minute ${stop.minute} is not allowed.`
+      );
     }
     seen.add(stop.minute);
 
     if (stop.minute <= previousMinute) {
-      throw new TypeError('Stops must be ordered by strictly increasing minute.');
+      throw new TypeError(
+        'Stops must be ordered by strictly increasing minute.'
+      );
     }
     previousMinute = stop.minute;
   }
@@ -306,7 +345,8 @@ function parseOklchString(input: string, label: string): OklchColor {
   const l = parseLightness(lRaw, `${label}.l`);
   const c = parseChroma(cRaw, `${label}.c`);
   const h = parseHue(hRaw, `${label}.h`);
-  const alpha = alphaPart === null ? 1 : parseAlpha(alphaPart, `${label}.alpha`);
+  const alpha =
+    alphaPart === null ? 1 : parseAlpha(alphaPart, `${label}.alpha`);
 
   return validateAndFreezeOklch({ l, c, h, alpha }, label);
 }
@@ -319,7 +359,9 @@ function validateAndFreezeOklch(color: OklchColor, label: string): OklchColor {
     throw new TypeError(`${label}.c must be a finite non-negative number.`);
   }
   if (!Number.isFinite(color.alpha) || color.alpha < 0 || color.alpha > 1) {
-    throw new TypeError(`${label}.alpha must be a finite number between 0 and 1.`);
+    throw new TypeError(
+      `${label}.alpha must be a finite number between 0 and 1.`
+    );
   }
 
   const hue = color.h === null ? null : normalizeHue(color.h);
@@ -424,8 +466,16 @@ function requireFinite(value: number, label: string): number {
   return value;
 }
 
-function toCssText(tokenKeys: readonly string[], tokens: Readonly<Record<string, OklchColor>>): string {
-  return tokenKeys.map((key) => `--${key}: ${serializeOklch(tokens[key] ?? failMissingToken(key))};`).join(' ');
+function toCssText(
+  tokenKeys: readonly string[],
+  tokens: Readonly<Record<string, OklchColor>>
+): string {
+  return tokenKeys
+    .map(
+      (key) =>
+        `--${key}: ${serializeOklch(tokens[key] ?? failMissingToken(key))};`
+    )
+    .join(' ');
 }
 
 function failMissingToken(key: string): never {
@@ -451,7 +501,11 @@ function interpolateTokenMap(
   return deepFreeze(interpolated);
 }
 
-function interpolateOklch(left: OklchColor, right: OklchColor, t: number): OklchColor {
+function interpolateOklch(
+  left: OklchColor,
+  right: OklchColor,
+  t: number
+): OklchColor {
   const l = lerp(left.l, right.l, t);
   const c = lerp(left.c, right.c, t);
   const alpha = lerp(left.alpha, right.alpha, t);
@@ -460,7 +514,12 @@ function interpolateOklch(left: OklchColor, right: OklchColor, t: number): Oklch
   return validateAndFreezeOklch({ l, c, h, alpha }, 'interpolated color');
 }
 
-function interpolateHue(left: OklchColor, right: OklchColor, chroma: number, t: number): number | null {
+function interpolateHue(
+  left: OklchColor,
+  right: OklchColor,
+  chroma: number,
+  t: number
+): number | null {
   if (chroma <= EPSILON) {
     return null;
   }
@@ -502,7 +561,12 @@ function findExactStop<TPhase extends string>(
 function findBracketingStops<TPhase extends string>(
   stops: readonly NormalizedThemeStop<TPhase>[],
   minute: number
-): { previous: NormalizedThemeStop<TPhase>; next: NormalizedThemeStop<TPhase>; span: number; elapsed: number } {
+): {
+  previous: NormalizedThemeStop<TPhase>;
+  next: NormalizedThemeStop<TPhase>;
+  span: number;
+  elapsed: number;
+} {
   let index = stops.findIndex((stop) => stop.minute > minute);
 
   if (index === -1) {
@@ -518,8 +582,10 @@ function findBracketingStops<TPhase extends string>(
   }
 
   const wrappedPreviousMinute = previous.minute;
-  const wrappedNextMinute = next.minute > previous.minute ? next.minute : next.minute + MINUTES_PER_DAY;
-  const wrappedMinute = minute >= wrappedPreviousMinute ? minute : minute + MINUTES_PER_DAY;
+  const wrappedNextMinute =
+    next.minute > previous.minute ? next.minute : next.minute + MINUTES_PER_DAY;
+  const wrappedMinute =
+    minute >= wrappedPreviousMinute ? minute : minute + MINUTES_PER_DAY;
 
   return {
     previous,
@@ -531,11 +597,15 @@ function findBracketingStops<TPhase extends string>(
 
 function formatNumber(value: number): string {
   const rounded = Math.round(value * 100000) / 100000;
-  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(5).replace(/0+$/, '').replace(/\.$/, '');
+  const text = Number.isInteger(rounded)
+    ? String(rounded)
+    : rounded.toFixed(5).replace(/0+$/, '').replace(/\.$/, '');
   return text === '-0' ? '0' : text;
 }
 
-function freezeSnapshot<TPhase extends string>(snapshot: ThemeSnapshot<TPhase>): ThemeSnapshot<TPhase> {
+function freezeSnapshot<TPhase extends string>(
+  snapshot: ThemeSnapshot<TPhase>
+): ThemeSnapshot<TPhase> {
   return deepFreeze(snapshot);
 }
 

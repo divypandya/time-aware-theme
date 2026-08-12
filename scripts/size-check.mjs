@@ -13,7 +13,9 @@ let failed = false;
 for (const budget of budgets) {
   const bytes = gzipSync(readFileSync(resolve(budget.file))).length;
   if (bytes > budget.limit) {
-    console.error(`${budget.label} exceeds budget: ${bytes} > ${budget.limit} bytes gzip`);
+    console.error(
+      `${budget.label} exceeds budget: ${bytes} > ${budget.limit} bytes gzip`
+    );
     failed = true;
   } else {
     console.log(`${budget.label}: ${bytes} bytes gzip`);
