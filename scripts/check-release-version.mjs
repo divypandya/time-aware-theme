@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 const pkg = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8')
 );
-const tag = process.env.GITHUB_REF_NAME ?? process.env.INPUT_TAG ?? '';
+const tag = process.env.INPUT_TAG || process.env.GITHUB_REF_NAME || '';
 const expectedTag = `time-aware-theme-v${pkg.version}`;
 
 if (!tag) {
