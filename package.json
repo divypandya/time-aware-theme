@@ -3,7 +3,24 @@
   "version": "0.1.0",
   "description": "Time-aware theme resolver, DOM controller, React adapter, and test utilities.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "Divy Pandya",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divypandya/time-aware-theme.git"
+  },
+  "homepage": "https://github.com/divypandya/time-aware-theme#readme",
+  "bugs": {
+    "url": "https://github.com/divypandya/time-aware-theme/issues"
+  },
+  "keywords": [
+    "theme",
+    "dark-mode",
+    "color-scheme",
+    "design-tokens",
+    "oklch",
+    "react"
+  ],
   "private": false,
   "sideEffects": false,
   "files": [
@@ -16,7 +33,7 @@
     "npm": ">=11.5.0"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "provenance": true
   },
   "exports": {

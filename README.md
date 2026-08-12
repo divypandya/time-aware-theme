@@ -1,9 +1,10 @@
 # @divypandya/time-aware-theme
 
 [![CI](https://github.com/divypandya/time-aware-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/divypandya/time-aware-theme/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@divypandya/time-aware-theme)](https://www.npmjs.com/package/@divypandya/time-aware-theme)
 ![zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![types](https://img.shields.io/badge/types-TypeScript-blue)
-![license](https://img.shields.io/badge/license-proprietary-lightgrey)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE.md)
 
 A theme that shifts with the time of day: a pure resolver that maps a minute of
 the day to interpolated [OKLCH](https://oklch.com/) tokens, a framework-free
