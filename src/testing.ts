@@ -61,7 +61,9 @@ export function createManualClock(
       id,
       kind: 'raf',
       time: currentTime + 16,
-      callback: () => callback(currentTime)
+      callback: () => {
+        callback(currentTime);
+      }
     });
     return id;
   }

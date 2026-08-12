@@ -25,8 +25,12 @@ function createWindowStub(matchDark = true) {
       type: string,
       listener: EventListenerOrEventListenerObject
     ) => {
-      if (!listeners.has(type)) listeners.set(type, new Set());
-      listeners.get(type)!.add(listener);
+      const existing = listeners.get(type);
+      if (existing) {
+        existing.add(listener);
+      } else {
+        listeners.set(type, new Set([listener]));
+      }
     },
     removeEventListener: (
       type: string,
@@ -44,7 +48,7 @@ function createWindowStub(matchDark = true) {
       }
       return true;
     }
-  } as Window;
+  } as unknown as Window;
 }
 
 function createDocumentStub() {
@@ -69,8 +73,12 @@ function createDocumentStub() {
       type: string,
       listener: EventListenerOrEventListenerObject
     ) => {
-      if (!listeners.has(type)) listeners.set(type, new Set());
-      listeners.get(type)!.add(listener);
+      const existing = listeners.get(type);
+      if (existing) {
+        existing.add(listener);
+      } else {
+        listeners.set(type, new Set([listener]));
+      }
     },
     removeEventListener: (
       type: string,
@@ -130,7 +138,9 @@ describe('theme controller', () => {
     expect(documentStub.documentElement.dataset.themeMode).toBe('dark');
     expect(documentStub.styleProps.get('--tat-background')).toContain('oklch(');
 
-    cleanup = () => controller.dispose();
+    cleanup = () => {
+      controller.dispose();
+    };
   });
 
   it('aligns minute ticks and survives preview toggles', () => {
@@ -168,7 +178,9 @@ describe('theme controller', () => {
     expect(after.mode).toBe('time-aware');
     expect(after.phase).not.toBe(before.phase);
 
-    cleanup = () => controller.dispose();
+    cleanup = () => {
+      controller.dispose();
+    };
   });
 
   it('ignores malformed storage and reacts to cross-tab mode changes', () => {
@@ -202,6 +214,8 @@ describe('theme controller', () => {
     );
     expect(controller.getSnapshot().mode).toBe('light');
 
-    cleanup = () => controller.dispose();
+    cleanup = () => {
+      controller.dispose();
+    };
   });
 });

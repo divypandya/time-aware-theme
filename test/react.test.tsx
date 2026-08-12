@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('react adapter', () => {
-  it('exposes controller state and avoids rerenders for minute-only ticks', async () => {
+  it('exposes controller state and avoids rerenders for minute-only ticks', () => {
     const clock = createManualClock({
       now: new Date('2026-08-12T03:05:00.000Z'),
       timezoneOffsetMinutes: 0
@@ -29,7 +29,7 @@ describe('react adapter', () => {
     });
     controller.start();
 
-    const renders: Array<string> = [];
+    const renders: string[] = [];
 
     function Probe() {
       const theme = useTimeAwareTheme();
@@ -45,7 +45,7 @@ describe('react adapter', () => {
 
     const root = createRoot(mountPoint);
 
-    await act(async () => {
+    act(() => {
       root.render(
         <TimeAwareThemeProvider controller={controller}>
           <Probe />
@@ -55,13 +55,13 @@ describe('react adapter', () => {
 
     expect(renders).toHaveLength(1);
 
-    await act(async () => {
+    act(() => {
       clock.advanceBy(60_000);
     });
 
     expect(renders).toHaveLength(1);
 
-    await act(async () => {
+    act(() => {
       root.unmount();
     });
     controller.dispose();

@@ -62,7 +62,7 @@ describe('core', () => {
     const exact = resolveThemeAt(system, 720);
     expect(exact.phase).toBe('noon');
     expect(exact.appearance).toBe('light');
-    expect(exact.tokens.background.h).toBe(120);
+    expect(exact.tokens.background?.h).toBe(120);
 
     const wrapped = resolveThemeAt(system, 1380);
     expect(wrapped.phase).toBe('late-night');
@@ -93,8 +93,8 @@ describe('core', () => {
     });
 
     const halfWay = resolveThemeAt(system, 360);
-    expect(halfWay.tokens.swatch.h).toBe(350);
-    expect(halfWay.tokens.swatch.alpha).toBe(1);
+    expect(halfWay.tokens.swatch?.h).toBe(350);
+    expect(halfWay.tokens.swatch?.alpha).toBe(1);
     expect(halfWay.cssText).toContain('--swatch: oklch(');
   });
 });

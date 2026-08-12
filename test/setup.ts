@@ -1,5 +1,9 @@
 import { afterEach } from 'vitest';
 
+declare global {
+  var IS_REACT_ACT_ENVIRONMENT: boolean;
+}
+
 // React 18/19 use this flag to decide whether `act()` should flush updates.
 // Vitest/jsdom does not set it automatically.
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;

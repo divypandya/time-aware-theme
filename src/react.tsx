@@ -21,8 +21,9 @@ export interface TimeAwareThemeProviderProps<TPhase extends string = string> {
   readonly children: ReactNode;
 }
 
-const TimeAwareThemeContext =
-  createContext<TimeAwareThemeContextValue<string> | null>(null);
+const TimeAwareThemeContext = createContext<TimeAwareThemeContextValue | null>(
+  null
+);
 
 export function TimeAwareThemeProvider<TPhase extends string = string>({
   controller,

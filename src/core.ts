@@ -71,10 +71,19 @@ export function defineThemeSystem<
   TTokens extends ThemeTokens,
   TPhase extends string = string
 >(input: ThemeSystemInput<TTokens, TPhase>): ThemeSystem<TPhase> {
-  if (!input?.staticThemes) {
+  const unvalidatedInput = input as
+    | {
+        staticThemes?: { light?: TTokens; dark?: TTokens } | null;
+      }
+    | null
+    | undefined;
+  if (!unvalidatedInput?.staticThemes) {
     throw new TypeError('defineThemeSystem() requires staticThemes.');
   }
-  if (!input.staticThemes.light || !input.staticThemes.dark) {
+  if (
+    !unvalidatedInput.staticThemes.light ||
+    !unvalidatedInput.staticThemes.dark
+  ) {
     throw new TypeError(
       'defineThemeSystem() requires both light and dark static themes.'
     );
@@ -221,7 +230,8 @@ function normalizeStop<TTokens extends ThemeTokens, TPhase extends string>(
     `stops[${index}].tokens`
   );
 
-  if (input.appearance !== 'light' && input.appearance !== 'dark') {
+  const appearance: string = input.appearance;
+  if (appearance !== 'light' && appearance !== 'dark') {
     throw new TypeError(`Stop ${index} appearance must be "light" or "dark".`);
   }
 
@@ -237,12 +247,13 @@ function normalizeStop<TTokens extends ThemeTokens, TPhase extends string>(
   };
 }
 
-function normalizeTokenMap<TTokens extends ThemeTokens>(
-  input: TTokens,
+function normalizeTokenMap(
+  input: ThemeTokens,
   tokenKeys: readonly string[],
   label: string
 ): Readonly<Record<string, OklchColor>> {
-  if (input === null || typeof input !== 'object') {
+  const unvalidatedInput = input as ThemeTokens | null | undefined;
+  if (unvalidatedInput === null || typeof unvalidatedInput !== 'object') {
     throw new TypeError(`${label} must be an object.`);
   }
 
@@ -251,7 +262,7 @@ function normalizeTokenMap<TTokens extends ThemeTokens>(
 
   const normalized: Record<string, OklchColor> = {};
   for (const key of tokenKeys) {
-    const token = (input as Record<string, OklchInput>)[key];
+    const token = input[key];
     if (token === undefined) {
       throw new TypeError(`${label}.${key} is missing.`);
     }
@@ -308,7 +319,8 @@ function normalizeOklch(input: OklchInput, label: string): OklchColor {
     return parseOklchString(input, label);
   }
 
-  if (input === null || typeof input !== 'object') {
+  const unvalidatedInput = input as Partial<OklchColor> | null | undefined;
+  if (unvalidatedInput === null || typeof unvalidatedInput !== 'object') {
     throw new TypeError(`${label} must be an OKLCH string or object.`);
   }
 
@@ -626,6 +638,6 @@ function freezeArray<T>(items: readonly T[]): readonly T[] {
   return Object.freeze([...items]);
 }
 
-function objectKeys<T extends object>(value: T): string[] {
+function objectKeys(value: object): string[] {
   return Object.keys(value);
 }

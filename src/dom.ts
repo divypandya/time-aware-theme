@@ -90,7 +90,7 @@ export function createThemeController<TPhase extends string = string>(
   const listeners = new Set<
     (snapshot: ThemeControllerSnapshot<TPhase>) => void
   >();
-  const detachListeners: Array<() => void> = [];
+  const detachListeners: (() => void)[] = [];
 
   function start(): ThemeControllerSnapshot<TPhase> {
     if (disposed) {
@@ -218,7 +218,7 @@ export function createThemeController<TPhase extends string = string>(
     });
 
     if (!snapshotEquals(currentSnapshot, nextSummary)) {
-      currentSnapshot = nextSummary as ThemeControllerSnapshot<TPhase>;
+      currentSnapshot = nextSummary;
       emitSnapshot();
     }
 
@@ -248,7 +248,7 @@ export function createThemeController<TPhase extends string = string>(
       snapshot.cssText === lastAppliedCssText &&
       snapshot.appearance === lastAppliedAppearance &&
       snapshot.mode === root.dataset.themeMode &&
-      String(snapshot.phase) === root.dataset.themePhase
+      snapshot.phase === root.dataset.themePhase
     ) {
       return;
     }
@@ -263,7 +263,7 @@ export function createThemeController<TPhase extends string = string>(
     root.classList.toggle('dark', snapshot.appearance === 'dark');
     style.setProperty('color-scheme', snapshot.appearance);
     root.dataset.themeMode = snapshot.mode;
-    root.dataset.themePhase = String(snapshot.phase);
+    root.dataset.themePhase = snapshot.phase;
     lastAppliedCssText = snapshot.cssText;
     lastAppliedAppearance = snapshot.appearance;
   }
@@ -300,7 +300,9 @@ export function createThemeController<TPhase extends string = string>(
     };
 
     if (scheduler) {
-      rafHandle = scheduler.requestAnimationFrame(() => run());
+      rafHandle = scheduler.requestAnimationFrame(() => {
+        run();
+      });
     } else {
       rafHandle = clock.setTimeout(run, 16);
     }
@@ -364,12 +366,18 @@ export function createThemeController<TPhase extends string = string>(
     win.addEventListener('focus', onFocus);
     win.addEventListener('storage', onStorage);
 
-    detachListeners.push(() =>
-      doc.removeEventListener('visibilitychange', onVisibilityChange)
-    );
-    detachListeners.push(() => win.removeEventListener('pageshow', onPageShow));
-    detachListeners.push(() => win.removeEventListener('focus', onFocus));
-    detachListeners.push(() => win.removeEventListener('storage', onStorage));
+    detachListeners.push(() => {
+      doc.removeEventListener('visibilitychange', onVisibilityChange);
+    });
+    detachListeners.push(() => {
+      win.removeEventListener('pageshow', onPageShow);
+    });
+    detachListeners.push(() => {
+      win.removeEventListener('focus', onFocus);
+    });
+    detachListeners.push(() => {
+      win.removeEventListener('storage', onStorage);
+    });
   }
 
   function detachTimeAwareListeners(): void {
@@ -488,10 +496,10 @@ function persistMode(
 
 function detectPreferredMode(win: Window | null): ThemeMode | null {
   try {
-    if (win?.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+    if (win?.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
-    if (win?.matchMedia) {
+    if (win) {
       return 'light';
     }
   } catch {
@@ -501,19 +509,32 @@ function detectPreferredMode(win: Window | null): ThemeMode | null {
 }
 
 function createScheduler(win: Window | null): AnimationScheduler | null {
-  if (win?.requestAnimationFrame && win.cancelAnimationFrame) {
-    return {
-      requestAnimationFrame: (callback) => win.requestAnimationFrame(callback),
-      cancelAnimationFrame: (handle) =>
-        win.cancelAnimationFrame(handle as number)
-    };
+  const capabilities = win as {
+    requestAnimationFrame?: Window['requestAnimationFrame'];
+    cancelAnimationFrame?: Window['cancelAnimationFrame'];
+  } | null;
+
+  if (
+    !capabilities?.requestAnimationFrame ||
+    !capabilities.cancelAnimationFrame
+  ) {
+    return null;
   }
 
-  return null;
+  const { requestAnimationFrame, cancelAnimationFrame } = capabilities;
+
+  return {
+    requestAnimationFrame: (callback) => requestAnimationFrame(callback),
+    cancelAnimationFrame: (handle) => {
+      cancelAnimationFrame(handle as number);
+    }
+  };
 }
 
 const systemClock: Clock = {
   now: () => new Date(),
   setTimeout: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
-  clearTimeout: (handle) => globalThis.clearTimeout(handle as number)
+  clearTimeout: (handle) => {
+    globalThis.clearTimeout(handle as number);
+  }
 };

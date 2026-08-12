@@ -29,7 +29,15 @@ export default tseslint.config(
         'error',
         { checksVoidReturn: false }
       ],
-      '@typescript-eslint/no-empty-function': 'off'
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        { allowNumber: true }
+      ]
     }
+  },
+  {
+    files: ['eslint.config.js', 'scripts/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked]
   }
 );
