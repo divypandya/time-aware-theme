@@ -32,8 +32,31 @@ export interface ThemeControllerOptions<TPhase extends string = string> {
   readonly storage?: StorageLike | null;
   readonly scheduler?: AnimationScheduler | null;
   readonly storageKey?: string;
-  readonly cssVariablePrefix?: string;
+  /**
+   * Namespace for emitted custom properties.
+   *
+   * - `'tat'` (default) -> `--tat-background`
+   * - `'color'` -> `--color-background`, which matches Tailwind v4's native
+   *   `@theme` namespace and needs no `@theme inline` remapping
+   * - `null` -> bare `--background`; you own the namespace and are responsible
+   *   for collisions
+   */
+  readonly cssVariablePrefix?: string | null;
   readonly defaultMode?: ThemeMode;
+  /**
+   * Element receiving custom properties and the `.dark` class.
+   * Defaults to `document.documentElement`.
+   */
+  readonly target?: HTMLElement | null;
+  /**
+   * Marks this controller as a secondary, display-only instance.
+   *
+   * Scoped controllers do not persist mode, do not attach window listeners,
+   * and do not write `color-scheme` — they render a theme into a subtree
+   * without claiming ownership of global state. Inferred automatically when
+   * `target` is not the document element.
+   */
+  readonly scoped?: boolean;
 }
 
 export interface ThemeControllerSnapshot<TPhase extends string = string> {
@@ -62,11 +85,25 @@ export function createThemeController<TPhase extends string = string>(
 ): ThemeController<TPhase> {
   const clock = options.clock ?? systemClock;
   const doc = options.document ?? null;
-  const win = options.window ?? doc?.defaultView ?? null;
-  const storage = options.storage ?? safeStorageFromWindow(win);
-  const scheduler = options.scheduler ?? createScheduler(win);
+  // These three are typed `| null` so a caller can explicitly opt out. Using
+  // `??` here would treat an explicit null as "unset" and hand back the very
+  // default the caller was trying to refuse, so distinguish undefined instead.
+  const win =
+    options.window === undefined ? (doc?.defaultView ?? null) : options.window;
+  const storage =
+    options.storage === undefined
+      ? safeStorageFromWindow(win)
+      : options.storage;
+  const scheduler =
+    options.scheduler === undefined ? createScheduler(win) : options.scheduler;
   const storageKey = options.storageKey ?? DEFAULT_STORAGE_KEY;
-  const prefix = options.cssVariablePrefix ?? DEFAULT_PREFIX;
+  const prefix =
+    options.cssVariablePrefix === undefined
+      ? DEFAULT_PREFIX
+      : options.cssVariablePrefix;
+  const target = options.target ?? doc?.documentElement ?? null;
+  const scoped =
+    options.scoped ?? (target !== null && target !== doc?.documentElement);
 
   let started = false;
   let disposed = false;
@@ -102,7 +139,7 @@ export function createThemeController<TPhase extends string = string>(
 
     started = true;
     mode =
-      loadModeFromStorage(storage, storageKey) ??
+      (scoped ? null : loadModeFromStorage(storage, storageKey)) ??
       options.defaultMode ??
       detectPreferredMode(win) ??
       'light';
@@ -136,7 +173,9 @@ export function createThemeController<TPhase extends string = string>(
 
     mode = nextMode;
     previewMinute = null;
-    persistMode(storage, storageKey, nextMode);
+    if (!scoped) {
+      persistMode(storage, storageKey, nextMode);
+    }
     updateFromCurrentTime('setMode');
     if (mode === 'time-aware') {
       attachTimeAwareListeners();
@@ -238,11 +277,11 @@ export function createThemeController<TPhase extends string = string>(
   }
 
   function applyToDom(snapshot: ThemeSnapshot<TPhase>): void {
-    if (!doc?.documentElement) {
+    if (!target) {
       return;
     }
 
-    const root = doc.documentElement;
+    const root = target;
 
     if (
       snapshot.cssText === lastAppliedCssText &&
@@ -256,12 +295,17 @@ export function createThemeController<TPhase extends string = string>(
     const style = root.style;
     for (const key of options.system.tokenKeys) {
       style.setProperty(
-        `--${prefix}-${key}`,
+        cssVariableName(prefix, key),
         serializeToken(snapshot.tokens[key] ?? failMissingToken(key))
       );
     }
     root.classList.toggle('dark', snapshot.appearance === 'dark');
-    style.setProperty('color-scheme', snapshot.appearance);
+    // `color-scheme` governs UA-rendered surfaces (scrollbars, form controls)
+    // and is only meaningful at the document root. A scoped instance setting it
+    // would alter native control rendering in its subtree for no benefit.
+    if (!scoped) {
+      style.setProperty('color-scheme', snapshot.appearance);
+    }
     root.dataset.themeMode = snapshot.mode;
     root.dataset.themePhase = snapshot.phase;
     lastAppliedCssText = snapshot.cssText;
@@ -327,7 +371,10 @@ export function createThemeController<TPhase extends string = string>(
   }
 
   function attachTimeAwareListeners(): void {
-    if (!win || !doc || detachListeners.length > 0) {
+    // A scoped instance is display-only: it must not multiply the page's
+    // listener count, and it must not react to cross-tab mode changes that
+    // belong to the primary controller.
+    if (scoped || !win || !doc || detachListeners.length > 0) {
       return;
     }
 
@@ -423,6 +470,40 @@ export function createThemeController<TPhase extends string = string>(
     getSnapshot,
     subscribe
   };
+}
+
+function cssVariableName(prefix: string | null, key: string): string {
+  return prefix === null || prefix === '' ? `--${key}` : `--${prefix}-${key}`;
+}
+
+/**
+ * Writes a resolved snapshot to an element, with no lifecycle attached.
+ *
+ * For static previews (swatches, docs demos) that never need to track time.
+ * Anything that should follow the clock wants a scoped controller instead.
+ */
+export function applySnapshotTo<TPhase extends string = string>(
+  element: HTMLElement,
+  snapshot: ThemeSnapshot<TPhase>,
+  options: {
+    readonly tokenKeys: readonly string[];
+    readonly cssVariablePrefix?: string | null;
+  }
+): void {
+  const prefix =
+    options.cssVariablePrefix === undefined
+      ? DEFAULT_PREFIX
+      : options.cssVariablePrefix;
+
+  for (const key of options.tokenKeys) {
+    element.style.setProperty(
+      cssVariableName(prefix, key),
+      serializeToken(snapshot.tokens[key] ?? failMissingToken(key))
+    );
+  }
+  element.classList.toggle('dark', snapshot.appearance === 'dark');
+  element.dataset.themeMode = snapshot.mode;
+  element.dataset.themePhase = snapshot.phase;
 }
 
 function serializeToken(color: {
