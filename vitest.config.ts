@@ -7,7 +7,21 @@ export default defineConfig({
     setupFiles: ['test/setup.ts'],
     include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
     coverage: {
-      reporter: ['text', 'json', 'html']
+      reporter: ['text', 'json', 'html'],
+      // Only measure shipped source. Example apps and build scripts previously
+      // dragged the aggregate to ~50% and obscured the real figures.
+      include: ['src/**/*.ts', 'src/**/*.tsx'],
+      // Thresholds block rather than inform, so coverage cannot quietly decay.
+      // Set as a ratchet just below what the suite currently achieves; raise
+      // them as coverage improves rather than lowering them to fit a change.
+      // Target for src/core.ts remains 95% branches — the remaining gap is
+      // defensive throws that need malformed frozen state to reach.
+      thresholds: {
+        'src/core.ts': { statements: 93, branches: 87, functions: 97 },
+        'src/dom.ts': { statements: 90, branches: 88, functions: 78 },
+        'src/testing.ts': { statements: 94, branches: 95, functions: 83 },
+        'src/react.tsx': { statements: 88, branches: 83, functions: 100 }
+      }
     }
   }
 });
