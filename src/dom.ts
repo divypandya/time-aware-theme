@@ -63,6 +63,16 @@ export interface ThemeControllerSnapshot<TPhase extends string = string> {
   readonly mode: ThemeMode;
   readonly appearance: 'light' | 'dark';
   readonly phase: TPhase | 'static';
+  /**
+   * Phase and appearance of the stop being interpolated toward.
+   *
+   * These are safe to carry here — unlike `progress`, they change only at stop
+   * boundaries, so they do not defeat the value comparison that suppresses
+   * redundant subscriber notifications. Read `progress` from `resolveThemeAt`
+   * if you need the continuous value.
+   */
+  readonly nextPhase: TPhase | 'static';
+  readonly nextAppearance: 'light' | 'dark';
 }
 
 export interface ThemeController<TPhase extends string = string> {
@@ -122,7 +132,9 @@ export function createThemeController<TPhase extends string = string>(
   let currentSnapshot = freezeControllerSnapshot({
     mode,
     appearance: mode === 'dark' ? 'dark' : 'light',
-    phase: 'static'
+    phase: 'static',
+    nextPhase: 'static',
+    nextAppearance: mode === 'dark' ? 'dark' : 'light'
   }) as ThemeControllerSnapshot<TPhase>;
   const listeners = new Set<
     (snapshot: ThemeControllerSnapshot<TPhase>) => void
@@ -253,7 +265,9 @@ export function createThemeController<TPhase extends string = string>(
     const nextSummary = freezeControllerSnapshot({
       mode,
       appearance: resolved.appearance,
-      phase: resolved.phase
+      phase: resolved.phase,
+      nextPhase: resolved.nextPhase,
+      nextAppearance: resolved.nextAppearance
     });
 
     if (!snapshotEquals(currentSnapshot, nextSummary)) {
@@ -457,7 +471,9 @@ export function createThemeController<TPhase extends string = string>(
     return (
       left.mode === right.mode &&
       left.appearance === right.appearance &&
-      left.phase === right.phase
+      left.phase === right.phase &&
+      left.nextPhase === right.nextPhase &&
+      left.nextAppearance === right.nextAppearance
     );
   }
 
