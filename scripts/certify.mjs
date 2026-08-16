@@ -21,13 +21,23 @@ import {
 } from '../dist/testing.js';
 import { createFixtureSystem } from './fixture.mjs';
 import { demoThemeSystem } from '../examples/vanilla-dom/theme-system.js';
+import dawnToDusk from '../dist/presets/dawn-to-dusk.js';
+import tidal from '../dist/presets/tidal.js';
+import contrastFirst from '../dist/presets/contrast-first.js';
+import paper from '../dist/presets/paper.js';
 
 // Every schedule this repo ships or demonstrates. The vanilla-dom demo is the
 // one recorded in the README, so a contrast failure there is one users see
 // before they have installed anything.
 const subjects = [
   { label: 'validation-fixture', system: createFixtureSystem() },
-  { label: 'examples/vanilla-dom', system: demoThemeSystem }
+  { label: 'examples/vanilla-dom', system: demoThemeSystem },
+  // Presets are a claim that a palette is good and safe. The claim is only
+  // worth making because this gate can refuse it.
+  { label: 'preset/dawn-to-dusk', system: dawnToDusk },
+  { label: 'preset/tidal', system: tidal },
+  { label: 'preset/contrast-first', system: contrastFirst },
+  { label: 'preset/paper', system: paper }
 ];
 
 const formatMinute = (minute) =>

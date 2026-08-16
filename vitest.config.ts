@@ -29,8 +29,15 @@ export default defineConfig({
       thresholds: {
         'src/core.ts': { statements: 93, branches: 87, functions: 97 },
         'src/dom.ts': { statements: 90, branches: 88, functions: 78 },
-        'src/testing.ts': { statements: 94, branches: 95, functions: 83 },
-        'src/react.tsx': { statements: 88, branches: 83, functions: 100 }
+        'src/contrast.ts': { statements: 100, branches: 100, functions: 100 },
+        'src/testing.ts': { statements: 93, branches: 94, functions: 80 },
+        'src/inspect.ts': { statements: 94, branches: 75, functions: 100 },
+        'src/tailwind.ts': { statements: 94, branches: 85, functions: 100 },
+        'src/react.tsx': { statements: 88, branches: 83, functions: 100 },
+        'src/react-ui.tsx': { statements: 100, branches: 93, functions: 100 },
+        // Presets are data, so line coverage is trivially total. The gate that
+        // matters for them is scripts/certify.mjs.
+        'src/presets/**': { statements: 100, branches: 100, functions: 100 }
       }
     }
   }

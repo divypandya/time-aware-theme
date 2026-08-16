@@ -21,5 +21,9 @@ jobs:
       - run: npm run build
       - run: npm run size
       - run: npm run certify
+      # Regenerating must be a no-op; a dirty tree means the checked-in
+      # presets drifted from their specification.
+      - run: npm run presets
+      - run: git diff --exit-code src/presets
       - run: npm run bench
       - run: npm run pack:dry
