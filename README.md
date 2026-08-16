@@ -20,16 +20,22 @@ updating live — this isn't a mockup.
 
 ## Stats
 
-|                                         |                                                                            |
-| --------------------------------------- | -------------------------------------------------------------------------- |
-| Runtime dependencies                    | **0**                                                                      |
-| Core bundle (`dist/index.js`, gzip)     | ~5.1 KB, budget 5.5 KB                                                     |
-| DOM bundle (`dist/dom.js`, gzip)        | ~3.0 KB, budget 3.25 KB                                                    |
-| React adapter (`dist/react.js`, gzip)   | ~0.4 KB, budget 1 KB                                                       |
-| Testing utils (`dist/testing.js`, gzip) | ~3.0 KB, budget 3 KB — dev only                                            |
-| Resolver performance                    | median < 1 ms, p95 < 3 ms per resolve ([benchmark](scripts/benchmark.mjs)) |
-| Contrast certification                  | 1,440-minute WCAG sweep, blocking ([certify](scripts/certify.mjs))         |
-| Node.js                                 | `>=24 <27`                                                                 |
+|                        |                                                                            |
+| ---------------------- | -------------------------------------------------------------------------- |
+| Runtime dependencies   | **0**                                                                      |
+| Core entry (gzip)      | ~5.2 KB incl. shared chunks, budget 6 KB                                   |
+| DOM entry (gzip)       | ~5.2 KB, budget 6.5 KB                                                     |
+| React UI entry (gzip)  | ~4.5 KB, budget 9 KB                                                       |
+| Preset entry (gzip)    | ~4.1 KB each, budget 7 KB                                                  |
+| Tailwind entry (gzip)  | ~0.5 KB, budget 2 KB                                                       |
+| Resolver performance   | median < 1 ms, p95 < 3 ms per resolve ([benchmark](scripts/benchmark.mjs)) |
+| Contrast certification | 1,440-minute WCAG sweep, blocking ([certify](scripts/certify.mjs))         |
+| Node.js                | `>=24 <27`                                                                 |
+
+Sizes are the **transitive** cost of each entry — the entry plus every shared
+chunk it imports, which is what a consumer actually downloads. WCAG and sRGB
+conversion maths lives only in the `testing` and `inspect` entries and never
+reaches core, dom, or the presets.
 
 Bundle sizes are enforced in CI on every push via `npm run size`
 ([scripts/size-check.mjs](scripts/size-check.mjs)); resolver performance is
@@ -290,6 +296,90 @@ clock.advanceBy(60 * 60_000); // fast-forward one hour
 controller.getSnapshot().phase;
 ```
 
+## Presets
+
+Four ready-made schedules, each certified across all 1,440 minutes in CI. Import
+one granularly so you never bundle the others:
+
+```ts
+import dawnToDusk from '@divypandya/time-aware-theme/presets/dawn-to-dusk';
+
+const controller = createThemeController({ system: dawnToDusk, document });
+```
+
+| Preset           | Level   | Character                                             |
+| ---------------- | ------- | ----------------------------------------------------- |
+| `dawn-to-dusk`   | AA      | Warm arc — indigo night, amber sunrise, ember dusk    |
+| `tidal`          | AA      | Cool arc — cyan through slate, no warm hues           |
+| `contrast-first` | **AAA** | 7:1 everywhere; time expressed via hue, not lightness |
+| `paper`          | AA      | Near-achromatic surfaces, one chromatic accent        |
+
+Each ships `background`, `foreground`, `surface`, `surfaceForeground`, `accent`
+and `accentForeground`, with all three pairs declared as roles.
+
+Preset colours are public API: changing a value is a breaking change, and new
+arcs ship under new names rather than as revisions. Backgrounds and accents are
+authored by hand; every other token is solved for a contrast target and clamped
+into the sRGB gamut by [scripts/generate-presets.mjs](scripts/generate-presets.mjs),
+which refuses to emit anything it cannot certify.
+
+## Tailwind v4
+
+Generate the `@theme inline` mapping and static fallbacks instead of
+hand-writing them:
+
+```ts
+import { tailwindCss } from '@divypandya/time-aware-theme/tailwind';
+
+console.log(tailwindCss(system)); // paste into your stylesheet
+```
+
+If you set `cssVariablePrefix: 'color'` on the controller, the variables are
+already in Tailwind's namespace and no `@theme inline` block is needed at all.
+
+## Diagnostics
+
+```ts
+import {
+  inspect,
+  formatInspection,
+  inspectSchedule
+} from '@divypandya/time-aware-theme/inspect';
+
+console.log(formatInspection(inspect(system, 16 * 60 + 33)));
+```
+
+```
+16:33  afternoon -> dusk  t=0.512  light
+  stops  15:00 (afternoon) -> 18:00 (dusk), 87 min to go
+  tokens
+    background         oklch(0.573 0.015 118 / 1)
+    foreground         oklch(0.573 0.028 96 / 1)
+  contrast
+    foreground on background           1.00:1 / 4.5:1 FAIL
+```
+
+`inspectSchedule(system)` summarises a whole day, collapsing failures into
+windows so a broken schedule reads as one window with a worst case rather than
+ninety near-identical lines.
+
+## React UI
+
+Unstyled, structured components — no CSS ships with this package. State is
+exposed through `data-*` attributes, so Tailwind's `data-[state=on]:` variants
+or plain CSS attribute selectors are enough to style them:
+
+```tsx
+import { ThemeSelector } from '@divypandya/time-aware-theme/react-ui';
+
+<ThemeSelector />;
+```
+
+`ThemeModeSelect`, `TimePreviewSlider` and `PhaseLabel` are also exported
+individually. The mode selector is a proper radio group with roving tabindex,
+the slider announces a wall-clock time rather than a bare number, and the phase
+label is an `aria-live` region because the phase changes on its own.
+
 ## Examples
 
 Runnable demo apps live under [examples/](examples), each with its own
@@ -307,7 +397,11 @@ README covering setup:
 - `@divypandya/time-aware-theme`
 - `@divypandya/time-aware-theme/dom`
 - `@divypandya/time-aware-theme/react`
+- `@divypandya/time-aware-theme/react-ui`
 - `@divypandya/time-aware-theme/testing`
+- `@divypandya/time-aware-theme/inspect`
+- `@divypandya/time-aware-theme/tailwind`
+- `@divypandya/time-aware-theme/presets/{dawn-to-dusk,tidal,contrast-first,paper}`
 
 ## Public surface
 
