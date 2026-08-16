@@ -1,6 +1,16 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Lets the certification suite import examples/react's theme system,
+      // which imports the package by name the way a real installer would.
+      '@divypandya/time-aware-theme': fileURLToPath(
+        new URL('./src/index.ts', import.meta.url)
+      )
+    }
+  },
   test: {
     environment: 'jsdom',
     globals: true,

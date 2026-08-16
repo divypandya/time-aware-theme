@@ -7,6 +7,7 @@ import {
   sampleSchedule
 } from '../src/testing.js';
 import { createFixtureSystem } from './fixture.js';
+import { demoThemeSystem as reactDemo } from '../examples/react/src/theme-system.js';
 
 /**
  * The fixture is the schedule consumers copy from. Before v0.2 it failed WCAG
@@ -57,5 +58,26 @@ describe('fixture certification', () => {
     // point is the assertion; the explicit check documents the intent.
     expect(system.roles.length).toBeGreaterThan(0);
     expect(system.stops.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The React example imports the package by name, the way a real installer
+ * would, so scripts/certify.mjs cannot reach it — that script runs against
+ * built JS. Covering it here closes the gap in the README's claim that every
+ * schedule this repo ships is contrast-certified.
+ */
+describe('examples/react certification', () => {
+  it('meets every declared role contract at every minute', () => {
+    expect(findContrastViolations(reactDemo)).toEqual([]);
+  });
+
+  it('never leaves the sRGB gamut', () => {
+    const outOfGamut = sampleSchedule(reactDemo).flatMap((snapshot) =>
+      Object.entries(snapshot.tokens)
+        .filter(([, color]) => isOutOfSrgbGamut(color))
+        .map(([key]) => `${key}@${snapshot.minute}`)
+    );
+    expect(outOfGamut).toEqual([]);
   });
 });
