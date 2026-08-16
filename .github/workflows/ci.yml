@@ -20,6 +20,6 @@ jobs:
       - run: npm test -- --coverage
       - run: npm run build
       - run: npm run size
-      - run: npm run validate:palette
+      - run: npm run certify
       - run: npm run bench
       - run: npm run pack:dry

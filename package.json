@@ -71,11 +71,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "certify": "node scripts/certify.mjs",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "size": "node scripts/size-check.mjs",
-    "validate:palette": "node scripts/validate-palette.mjs",
     "bench": "node scripts/benchmark.mjs",
     "pack:dry": "npm pack --dry-run"
   },
