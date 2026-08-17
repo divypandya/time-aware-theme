@@ -1,6 +1,6 @@
 {
   "name": "@divypandya/time-aware-theme",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Time-aware theme resolver, DOM controller, React adapter, and test utilities.",
   "type": "module",
   "license": "MIT",
@@ -26,6 +26,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE.md"
   ],
   "engines": {
@@ -53,6 +54,34 @@
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
     },
+    "./react-ui": {
+      "types": "./dist/react-ui.d.ts",
+      "import": "./dist/react-ui.js"
+    },
+    "./inspect": {
+      "types": "./dist/inspect.d.ts",
+      "import": "./dist/inspect.js"
+    },
+    "./tailwind": {
+      "types": "./dist/tailwind.d.ts",
+      "import": "./dist/tailwind.js"
+    },
+    "./presets/dawn-to-dusk": {
+      "types": "./dist/presets/dawn-to-dusk.d.ts",
+      "import": "./dist/presets/dawn-to-dusk.js"
+    },
+    "./presets/tidal": {
+      "types": "./dist/presets/tidal.d.ts",
+      "import": "./dist/presets/tidal.js"
+    },
+    "./presets/contrast-first": {
+      "types": "./dist/presets/contrast-first.d.ts",
+      "import": "./dist/presets/contrast-first.js"
+    },
+    "./presets/paper": {
+      "types": "./dist/presets/paper.d.ts",
+      "import": "./dist/presets/paper.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.js",
@@ -71,22 +100,24 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "certify": "node scripts/certify.mjs",
+    "presets": "node scripts/generate-presets.mjs",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "size": "node scripts/size-check.mjs",
-    "validate:palette": "node scripts/validate-palette.mjs",
     "bench": "node scripts/benchmark.mjs",
     "pack:dry": "npm pack --dry-run"
   },
   "devDependencies": {
+    "@eslint/js": "^9.34.0",
     "@types/node": "^24.3.1",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@eslint/js": "^9.34.0",
     "@vitest/coverage-v8": "^3.2.4",
     "culori": "^4.0.2",
     "eslint": "^9.34.0",
+    "fast-check": "^4.9.0",
     "globals": "^16.3.0",
     "jsdom": "^26.1.0",
     "prettier": "^3.6.2",

@@ -24,6 +24,39 @@ export interface ThemeStopInput<
   readonly tokens: TTokens;
 }
 
+/**
+ * Minimum contrast level for a declared role pair.
+ *
+ * - `AAA` — 7:1, WCAG 2.2 enhanced body text
+ * - `AA` — 4.5:1, WCAG 2.2 normal body text (default)
+ * - `AA-large` — 3:1, text >=18.66px or >=14px bold
+ * - `non-text` — 3:1, WCAG 1.4.11 borders / focus rings / icons
+ */
+export type ContrastLevel = 'AAA' | 'AA' | 'AA-large' | 'non-text';
+
+const CONTRAST_LEVELS: readonly ContrastLevel[] = [
+  'AAA',
+  'AA',
+  'AA-large',
+  'non-text'
+];
+
+export interface ThemeRolePair {
+  readonly bg: string;
+  readonly fg: string;
+  readonly min?: ContrastLevel;
+}
+
+export interface ThemeRoles {
+  readonly pairs: readonly ThemeRolePair[];
+}
+
+export interface NormalizedThemeRolePair {
+  readonly bg: string;
+  readonly fg: string;
+  readonly min: ContrastLevel;
+}
+
 export interface ThemeSystemInput<
   TTokens extends ThemeTokens = ThemeTokens,
   TPhase extends string = string
@@ -33,6 +66,14 @@ export interface ThemeSystemInput<
     readonly light: TTokens;
     readonly dark: TTokens;
   };
+  /**
+   * Declares which token pairs carry a foreground-on-background relationship.
+   *
+   * Roles are validation targeting only — they never alter interpolation. They
+   * are consumed by the authoring-time swap lint (below), by
+   * `assertContrast()` in the `/testing` entry point, and by `inspect()`.
+   */
+  readonly roles?: ThemeRoles;
   readonly stops: readonly ThemeStopInput<TTokens, TPhase>[];
 }
 
@@ -46,6 +87,7 @@ export interface NormalizedThemeStop<TPhase extends string = string> {
 export interface ThemeSystem<TPhase extends string = string> {
   readonly name?: string;
   readonly tokenKeys: readonly string[];
+  readonly roles: readonly NormalizedThemeRolePair[];
   readonly staticThemes: {
     readonly light: Readonly<Record<string, OklchColor>>;
     readonly dark: Readonly<Record<string, OklchColor>>;
@@ -60,6 +102,17 @@ export interface ThemeSnapshot<TPhase extends string = string> {
   readonly minute: number;
   readonly tokens: Readonly<Record<string, OklchColor>>;
   readonly cssText: string;
+  /**
+   * Progress through the current stop-to-stop interval, 0..1.
+   *
+   * `0` at an exact stop minute and in static modes. Sawtooth: rises toward 1
+   * as the next stop approaches, then resets to 0 once that stop is reached.
+   */
+  readonly progress: number;
+  /** Phase of the stop being interpolated toward. Wraps at end of day. */
+  readonly nextPhase: TPhase | 'static';
+  /** Appearance of the stop being interpolated toward. Wraps at end of day. */
+  readonly nextAppearance: ThemeAppearance;
 }
 
 export interface ThemeCssSnapshot {
@@ -115,15 +168,60 @@ export function defineThemeSystem<
 
   validateSortedUniqueStops(stops);
 
+  const roles = normalizeRoles(input.roles, tokenKeys);
+  validateNoObservableRoleSwap(stops, roles);
+  warnOnDegenerateSchedule(stops, input.name);
+
   return deepFreeze({
     ...(input.name ? { name: input.name } : {}),
     tokenKeys,
+    roles,
     staticThemes: {
       light: normalizedLight,
       dark: normalizedDark
     },
     stops
   });
+}
+
+/**
+ * Expands a role swap into a hold stop and a snap stop one minute later.
+ *
+ * `resolveThemeAt` only ever evaluates integer minutes (`normalizeMinute`
+ * truncates), so two stops one minute apart have no sampleable interior. The
+ * foreground/background crossing that would otherwise collapse contrast to
+ * ~1:1 mid-interval becomes unobservable rather than merely unlikely.
+ */
+export function holdThenSnap<
+  TTokens extends ThemeTokens,
+  TPhase extends string = string
+>(options: {
+  readonly at: number;
+  readonly from: TTokens;
+  readonly to: TTokens;
+  readonly fromAppearance: ThemeAppearance;
+  readonly toAppearance: ThemeAppearance;
+  readonly phase: TPhase;
+  readonly nextPhase: TPhase;
+}): readonly [
+  ThemeStopInput<TTokens, TPhase>,
+  ThemeStopInput<TTokens, TPhase>
+] {
+  const at = normalizeMinute(options.at);
+  return [
+    {
+      minute: at,
+      appearance: options.fromAppearance,
+      phase: options.phase,
+      tokens: options.from
+    },
+    {
+      minute: normalizeMinute(at + 1),
+      appearance: options.toAppearance,
+      phase: options.nextPhase,
+      tokens: options.to
+    }
+  ];
 }
 
 export function resolveThemeAt<TPhase extends string = string>(
@@ -144,19 +242,36 @@ export function resolveThemeAt<TPhase extends string = string>(
       phase: stop.phase,
       minute: normalizedMinute,
       tokens: stop.tokens,
-      cssText: toCssText(system.tokenKeys, stop.tokens)
+      cssText: toCssText(system.tokenKeys, stop.tokens),
+      progress: 0,
+      nextPhase: stop.phase,
+      nextAppearance: stop.appearance
     });
   }
 
-  const exact = findExactStop(stops, normalizedMinute);
-  if (exact) {
+  const exactIndex = stops.findIndex(
+    (stop) => stop.minute === normalizedMinute
+  );
+  if (exactIndex !== -1) {
+    const exact = stops[exactIndex];
+    // At an exact stop we sit at the *start* of the interval that stop opens,
+    // so `next` is the following stop rather than this one. This keeps the
+    // sawtooth continuous: progress approaches 1, resets to 0, and `nextPhase`
+    // advances in the same tick.
+    const following = stops[(exactIndex + 1) % stops.length];
+    if (!exact || !following) {
+      throw new Error('Invalid stop set.');
+    }
     return freezeSnapshot({
       mode: 'time-aware',
       appearance: exact.appearance,
       phase: exact.phase,
       minute: normalizedMinute,
       tokens: exact.tokens,
-      cssText: toCssText(system.tokenKeys, exact.tokens)
+      cssText: toCssText(system.tokenKeys, exact.tokens),
+      progress: 0,
+      nextPhase: following.phase,
+      nextAppearance: following.appearance
     });
   }
 
@@ -173,7 +288,10 @@ export function resolveThemeAt<TPhase extends string = string>(
     phase: previous.phase,
     minute: normalizedMinute,
     tokens,
-    cssText: toCssText(system.tokenKeys, tokens)
+    cssText: toCssText(system.tokenKeys, tokens),
+    progress: t,
+    nextPhase: next.phase,
+    nextAppearance: next.appearance
   });
 }
 
@@ -190,7 +308,10 @@ export function resolveThemeSnapshot<TPhase extends string = string>(
       phase: 'static',
       minute: normalizeMinute(minute),
       tokens,
-      cssText: toCssText(system.tokenKeys, tokens)
+      cssText: toCssText(system.tokenKeys, tokens),
+      progress: 0,
+      nextPhase: 'static',
+      nextAppearance: mode
     }) as ThemeSnapshot<TPhase>;
   }
 
@@ -311,6 +432,178 @@ function validateSortedUniqueStops<TPhase extends string>(
       );
     }
     previousMinute = stop.minute;
+  }
+}
+
+function normalizeRoles(
+  input: ThemeRoles | undefined,
+  tokenKeys: readonly string[]
+): readonly NormalizedThemeRolePair[] {
+  if (!input) {
+    return freezeArray([]);
+  }
+
+  const rawPairs: unknown = input.pairs;
+  if (!Array.isArray(rawPairs)) {
+    throw new TypeError('roles.pairs must be an array.');
+  }
+
+  const known = new Set(tokenKeys);
+  const normalized = (rawPairs as readonly unknown[]).map((entry, index) => {
+    if (entry === null || typeof entry !== 'object') {
+      throw new TypeError(`roles.pairs[${index}] must be an object.`);
+    }
+    const pair = entry as Partial<ThemeRolePair>;
+
+    const sides: Record<'bg' | 'fg', string> = { bg: '', fg: '' };
+    for (const side of ['bg', 'fg'] as const) {
+      const value = pair[side];
+      if (typeof value !== 'string' || !known.has(value)) {
+        throw new TypeError(
+          `roles.pairs[${index}].${side} must reference a declared token key.`
+        );
+      }
+      sides[side] = value;
+    }
+
+    // Read as unknown and match against the permitted values: the declared
+    // type would let TypeScript assume this is already a ContrastLevel, but
+    // untyped JavaScript callers reach here too. Looking the value up in the
+    // list narrows it without an assertion.
+    const rawMin: unknown = (entry as { min?: unknown }).min ?? 'AA';
+    const min = CONTRAST_LEVELS.find((level) => level === rawMin);
+    if (!min) {
+      throw new TypeError(
+        `roles.pairs[${index}].min must be "AAA", "AA", "AA-large", or "non-text".`
+      );
+    }
+    return { bg: sides.bg, fg: sides.fg, min };
+  });
+
+  return deepFreeze(freezeArray(normalized));
+}
+
+/**
+ * Rejects role swaps that a consumer can actually observe.
+ *
+ * If `fg.l - bg.l` changes sign between consecutive stops, the two tokens
+ * cross, and contrast collapses toward 1:1 somewhere in between. That is only
+ * a real defect when an integer minute exists strictly between the two stops —
+ * a one-minute gap (see `holdThenSnap`) has no sampleable interior, so the
+ * crossing can never be rendered.
+ */
+function validateNoObservableRoleSwap<TPhase extends string>(
+  stops: readonly NormalizedThemeStop<TPhase>[],
+  roles: readonly NormalizedThemeRolePair[]
+): void {
+  if (roles.length === 0 || stops.length < 2) {
+    return;
+  }
+
+  for (let index = 0; index < stops.length; index += 1) {
+    const previous = stops[index];
+    const next = stops[(index + 1) % stops.length];
+    if (!previous || !next) {
+      continue;
+    }
+
+    const span =
+      next.minute > previous.minute
+        ? next.minute - previous.minute
+        : next.minute + MINUTES_PER_DAY - previous.minute;
+    if (span <= 1) {
+      continue;
+    }
+
+    for (const role of roles) {
+      const previousDelta = signedDelta(previous.tokens, role);
+      const nextDelta = signedDelta(next.tokens, role);
+      if (previousDelta === 0 || nextDelta === 0) {
+        continue;
+      }
+      if (previousDelta > 0 !== nextDelta > 0) {
+        throw new TypeError(
+          `Role pair "${role.fg}" on "${role.bg}" swaps sides between minute ` +
+            `${previous.minute} (${previous.phase}) and ${next.minute} ` +
+            `(${next.phase}) across a ${span}-minute interval. The two tokens ` +
+            `cross mid-interval and contrast collapses to ~1:1. Use ` +
+            `holdThenSnap() so the swap happens in a single minute.`
+        );
+      }
+    }
+  }
+}
+
+function signedDelta(
+  tokens: Readonly<Record<string, OklchColor>>,
+  role: NormalizedThemeRolePair
+): number {
+  const fg = tokens[role.fg];
+  const bg = tokens[role.bg];
+  if (!fg || !bg) {
+    return 0;
+  }
+  const delta = fg.l - bg.l;
+  return Math.abs(delta) <= EPSILON ? 0 : delta;
+}
+
+/**
+ * Warns when a schedule declares more stops than it has distinct token sets —
+ * the authoring mistake behind "my five phases only render as two".
+ */
+function warnOnDegenerateSchedule<TPhase extends string>(
+  stops: readonly NormalizedThemeStop<TPhase>[],
+  name: string | undefined
+): void {
+  if (!isDevMode() || stops.length < 3) {
+    return;
+  }
+
+  const serialized = stops.map((stop) => JSON.stringify(stop.tokens));
+
+  // Consecutive duplicates are deliberate holds (see holdThenSnap) — the
+  // palette is meant to stay put across that interval. The defect this catches
+  // is a schedule that *revisits* a handful of palettes, e.g. five stops
+  // alternating between two token sets, which renders as two phases.
+  const collapsed = serialized.filter(
+    (tokens, index) => index === 0 || tokens !== serialized[index - 1]
+  );
+
+  // A schedule is a loop, so the final palette returning to the first one is
+  // the cycle closing rather than a repeat. Drop it before counting.
+  if (
+    collapsed.length > 1 &&
+    collapsed[collapsed.length - 1] === collapsed[0]
+  ) {
+    collapsed.pop();
+  }
+
+  const distinct = new Set(collapsed);
+  if (distinct.size < collapsed.length) {
+    warn(
+      `${name ? `[${name}] ` : ''}${collapsed.length} stops reference only ` +
+        `${distinct.size} distinct token sets, so some phases will render ` +
+        `identically. Give each stop its own tokens, or remove the ` +
+        `redundant stops.`
+    );
+  }
+}
+
+function isDevMode(): boolean {
+  try {
+    return (
+      typeof process === 'undefined' || process.env.NODE_ENV !== 'production'
+    );
+  } catch {
+    return true;
+  }
+}
+
+function warn(message: string): void {
+  try {
+    console.warn(`time-aware-theme: ${message}`);
+  } catch {
+    // A missing or hostile console must never break theme definition.
   }
 }
 
@@ -561,13 +854,6 @@ function shortestHueDelta(start: number, end: number): number {
 
 function lerp(left: number, right: number, t: number): number {
   return left + (right - left) * t;
-}
-
-function findExactStop<TPhase extends string>(
-  stops: readonly NormalizedThemeStop<TPhase>[],
-  minute: number
-): NormalizedThemeStop<TPhase> | undefined {
-  return stops.find((stop) => stop.minute === minute);
 }
 
 function findBracketingStops<TPhase extends string>(

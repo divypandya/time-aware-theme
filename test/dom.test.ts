@@ -144,8 +144,11 @@ describe('theme controller', () => {
   });
 
   it('aligns minute ticks and survives preview toggles', () => {
+    // 06:00:30 sits on the holdThenSnap hold stop (minute 360, still
+    // "pre-dawn"); one minute later is the snap stop (361, "dawn"). Ticking
+    // across that single-minute swap is the boundary worth exercising.
     const clock = createManualClock({
-      now: new Date('2026-08-12T05:59:30.000Z'),
+      now: new Date('2026-08-12T06:00:30.000Z'),
       timezoneOffsetMinutes: 0
     });
     const storage = createStorageStub({
@@ -176,7 +179,9 @@ describe('theme controller', () => {
     clock.advanceBy(60_000);
     const after = controller.getSnapshot();
     expect(after.mode).toBe('time-aware');
-    expect(after.phase).not.toBe(before.phase);
+    expect(before.phase).toBe('pre-dawn');
+    expect(after.phase).toBe('dawn');
+    expect(after.appearance).toBe('light');
 
     cleanup = () => {
       controller.dispose();
