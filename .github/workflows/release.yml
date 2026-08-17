@@ -24,7 +24,13 @@ jobs:
           node-version: '24'
           cache: npm
           registry-url: 'https://registry.npmjs.org'
-      - run: npm install -g npm@latest
+      # Pinned deliberately. This step previously installed npm@latest, which
+      # made the release job non-reproducible: v0.1.0 published on npm 11.x,
+      # and the v0.2.0 attempt silently ran on npm 12.0.2 and failed OIDC
+      # trusted-publisher auth with an opaque E404 on the PUT. Trusted
+      # publishing needs >= 11.5.1; 11.x is the line known to work with this
+      # workflow. Revisit as a deliberate upgrade, not implicitly per-run.
+      - run: npm install -g npm@11.19.0
       - run: npm ci
       - run: node scripts/check-release-version.mjs
         env:
