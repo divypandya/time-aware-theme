@@ -11,6 +11,11 @@ the day to interpolated [OKLCH](https://oklch.com/) tokens, a framework-free
 DOM controller that applies them, a React adapter, and deterministic testing
 utilities for simulating the clock.
 
+Interpolating a palette across a day has a trap in it — when a light-on-dark
+stop moves toward a dark-on-light one, the two tokens cross and text goes
+briefly invisible. This package makes that a build error rather than something
+a user finds at dusk, and ships four palettes certified against it.
+
 ![Recording of the theme cycling through a full day, driven by the real DOM controller](assets/demo.gif)
 
 Recording of [examples/vanilla-dom](examples/vanilla-dom): dragging the
@@ -42,6 +47,8 @@ Bundle sizes are enforced in CI on every push via `npm run size`
 checked via `npm run bench` ([scripts/benchmark.mjs](scripts/benchmark.mjs));
 every shipped schedule is contrast-certified via `npm run certify`
 ([scripts/certify.mjs](scripts/certify.mjs)).
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Installation
 
@@ -405,25 +412,28 @@ README covering setup:
 
 ## Public surface
 
-- `defineThemeSystem`
-- `holdThenSnap`
-- `resolveThemeAt`
-- `resolveThemeSnapshot`
-- `serializeOklch`
-- `createThemeController`
-- `applySnapshotTo`
-- `TimeAwareThemeProvider`
-- `useTimeAwareTheme`
-- `createManualClock`
-- `sampleSchedule`
-- `assertContrast`
-- `findContrastViolations`
-- `contrastRatio`
-- `meetsWcagAA`
-- `meetsContrast`
-- `contrastThreshold`
-- `relativeLuminance`
-- `isOutOfSrgbGamut`
+**`.`** — `defineThemeSystem`, `holdThenSnap`, `resolveThemeAt`,
+`resolveThemeSnapshot`, `serializeOklch`, `normalizeMinute`, `MINUTES_PER_DAY`
+(plus `createThemeController` and `applySnapshotTo`, re-exported from `/dom`)
+
+**`/dom`** — `createThemeController`, `applySnapshotTo`
+
+**`/react`** — `TimeAwareThemeProvider`, `useTimeAwareTheme`
+
+**`/react-ui`** — `ThemeSelector`, `ThemeModeSelect`, `TimePreviewSlider`,
+`PhaseLabel`, `formatMinute`
+
+**`/testing`** — `createManualClock`, `sampleSchedule`, `assertContrast`,
+`findContrastViolations`, `contrastRatio`, `contrastThreshold`, `meetsContrast`,
+`meetsWcagAA`, `relativeLuminance`, `isOutOfSrgbGamut`
+
+**`/inspect`** — `inspect`, `inspectSchedule`, `formatInspection`,
+`formatScheduleReport`
+
+**`/tailwind`** — `tailwindCss`, `themeInlineCss`, `staticFallbackCss`
+
+**`/presets/*`** — each preset is a default export plus a named export
+(`dawnToDusk`, `tidal`, `contrastFirst`, `paper`)
 
 ## Runtime notes
 
@@ -431,8 +441,8 @@ README covering setup:
 - React is an optional peer for the adapter entry point.
 - The DOM controller is safe to construct without `window` or `document`; it simply becomes inert.
 - The controller writes resolved theme tokens as CSS custom properties, toggles the `.dark` class, and updates `color-scheme`.
-- WCAG and sRGB conversion maths lives in `/testing` only, so it never reaches
-  your production bundle.
+- WCAG and sRGB conversion maths lives only in the `/testing` and `/inspect`
+  entries, so it never reaches core, dom, or the presets.
 - Every schedule this repo ships passes a 1,440-minute WCAG sweep in CI
   (`npm run certify`).
 
@@ -440,5 +450,5 @@ README covering setup:
 
 - No location access.
 - No weather-based or network-driven theming.
-- No user-defined schedules in v0.1.0.
+- No user-defined schedules yet.
 - No React-driven minute ticking.
