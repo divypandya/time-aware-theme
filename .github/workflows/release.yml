@@ -23,21 +23,16 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          # Deliberately no registry-url. It makes setup-node write an .npmrc
-          # containing //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN} and
-          # point NPM_CONFIG_USERCONFIG at it. NODE_AUTH_TOKEN was removed when
-          # publishing moved to OIDC trusted publishing, so npm sent an empty
-          # bearer token and never reached the OIDC exchange. The registry
-          # answers an unauthorized scoped PUT with 404, not 401, which made it
-          # look like a missing package. npm defaults to registry.npmjs.org
-          # anyway, so nothing is lost by omitting it.
-      # Pinned so the release job is reproducible: this previously installed
-      # npm@latest, so v0.1.0 and the v0.2.0 attempt silently ran on different
-      # majors. Trusted publishing requires >= 11.5.1, but 11.19.0 does not
-      # perform the OIDC token exchange at all — it reports ENEEDAUTH with no
-      # credentials configured, even with id-token: write available and the
-      # provenance signer able to obtain a token. 12.x is the line that
-      # actually implements it. Upgrade deliberately, not per-run.
+          # registry-url makes setup-node write an .npmrc containing
+          # //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}. That is exactly
+          # what we want when publishing with a token, and exactly what broke
+          # OIDC publishing: with NODE_AUTH_TOKEN unset it sent an empty bearer
+          # token, and the registry answers an unauthorized scoped PUT with 404
+          # rather than 401. The two auth methods are mutually exclusive here.
+          registry-url: 'https://registry.npmjs.org'
+      # Pinned so the release job is reproducible. This previously installed
+      # npm@latest, so v0.1.0 and the v0.2.0 attempts silently ran on different
+      # majors, which made a publish failure much harder to diagnose.
       - run: npm install -g npm@12.0.2
       - run: npm ci
       - run: node scripts/check-release-version.mjs
@@ -45,4 +40,10 @@ jobs:
           INPUT_TAG: ${{ inputs.tag }}
       - run: npm run build
       - run: npm test
+      # NODE_AUTH_TOKEN must be a granular access token created with
+      # "bypass 2FA" enabled, otherwise the registry demands an interactive
+      # OTP and this step cannot complete. See
+      # https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification
       - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
