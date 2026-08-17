@@ -5,6 +5,31 @@ All notable changes to this package are documented here.
 This project follows [Semantic Versioning](https://semver.org/). While the
 package is pre-1.0, minor versions may contain breaking changes.
 
+## 0.2.1 — 2026-08-17
+
+Documentation only. **No code changes** — `dist` is byte-identical to 0.2.0, so
+there is nothing to gain by upgrading unless you read the package page.
+
+### Fixed
+
+- The README's animations pointed at relative `assets/…` paths. npm renders the
+  README from the published tarball, and `files` ships only `dist`,
+  `README.md`, `CHANGELOG.md` and `LICENSE.md`, so those paths resolved to
+  nothing and npmjs.com showed five broken images. They now point at
+  `raw.githubusercontent.com`. GitHub was unaffected either way, which is why
+  it went unnoticed.
+
+  Adding `assets` to `files` would also have worked, but ships ~3.5MB of GIFs
+  to every consumer for images only the package page needs.
+
+### Documented
+
+- Regenerated the demo animation, which still showed the pre-0.2.0 schedule —
+  including the windows where foreground and background crossed and text became
+  invisible. The front page was demonstrating the bug 0.2.0 fixed.
+- Added an animation per shipped preset, and `npm run demo:gif` to regenerate
+  them all from a headless browser running the real controller.
+
 ## 0.2.0 — 2026-08-16
 
 Driven by integration feedback from the agents-explorer team, who reported

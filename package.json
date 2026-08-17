@@ -1,6 +1,6 @@
 {
   "name": "@divypandya/time-aware-theme",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Time-aware theme resolver, DOM controller, React adapter, and test utilities.",
   "type": "module",
   "license": "MIT",
