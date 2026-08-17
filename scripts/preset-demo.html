@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>time-aware-theme — preset demo</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--tat-background);
+        color: var(--tat-foreground);
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+
+      .frame {
+        width: 720px;
+        padding: 34px 38px;
+      }
+
+      .head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 22px;
+      }
+
+      .name {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        opacity: 0.55;
+      }
+
+      .clock {
+        font-size: 46px;
+        font-weight: 700;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+      }
+
+      .phase {
+        font-size: 15px;
+        text-transform: capitalize;
+        opacity: 0.62;
+        margin-top: 6px;
+      }
+
+      /* A raised panel, so the surface pair is actually exercised rather than
+         just listed as a swatch. */
+      .panel {
+        background: var(--tat-surface);
+        color: var(--tat-surfaceForeground);
+        border-radius: 14px;
+        padding: 20px 22px;
+        margin-bottom: 20px;
+      }
+
+      .panel-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .panel-body {
+        font-size: 13px;
+        line-height: 1.55;
+        opacity: 0.78;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .btn {
+        background: var(--tat-accent);
+        color: var(--tat-accentForeground);
+        border-radius: 999px;
+        padding: 9px 20px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .btn-ghost {
+        border: 1.5px solid var(--tat-accent);
+        color: var(--tat-accent);
+        border-radius: 999px;
+        padding: 7.5px 18px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .track {
+        height: 5px;
+        border-radius: 999px;
+        background: var(--tat-surface);
+        margin-top: 22px;
+        overflow: hidden;
+      }
+
+      .fill {
+        height: 100%;
+        background: var(--tat-accent);
+      }
+
+      .swatches {
+        display: flex;
+        gap: 7px;
+        margin-top: 18px;
+      }
+
+      .sw {
+        height: 26px;
+        flex: 1;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame">
+      <div class="head">
+        <div>
+          <div class="clock" id="clock">00:00</div>
+          <div class="phase" id="phase">night</div>
+        </div>
+        <div class="name" id="name">preset</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Contrast holds all day</div>
+        <div class="panel-body">
+          Every declared pair is certified across all 1,440 minutes. Text stays
+          legible through both appearance swaps.
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="btn">Primary action</span>
+        <span class="btn-ghost">Secondary</span>
+      </div>
+
+      <div class="track">
+        <div class="fill" id="fill" style="width: 0%"></div>
+      </div>
+
+      <div class="swatches">
+        <div class="sw" style="background: var(--tat-background)"></div>
+        <div class="sw" style="background: var(--tat-surface)"></div>
+        <div class="sw" style="background: var(--tat-foreground)"></div>
+        <div class="sw" style="background: var(--tat-accent)"></div>
+      </div>
+    </main>
+
+    <script type="module">
+      import { createThemeController } from '/dist/dom.js';
+      import { resolveThemeAt } from '/dist/index.js';
+
+      const preset = new URLSearchParams(location.search).get('preset');
+      const { default: system } = await import(`/dist/presets/${preset}.js`);
+
+      document.querySelector('#name').textContent = preset;
+
+      // The real controller, writing real custom properties — the same code
+      // path a consumer runs, not a mock-up.
+      const controller = createThemeController({
+        system,
+        document,
+        defaultMode: 'time-aware',
+        scheduler: null
+      });
+      controller.start();
+
+      const clock = document.querySelector('#clock');
+      const phase = document.querySelector('#phase');
+      const fill = document.querySelector('#fill');
+
+      window.renderMinute = (minute) => {
+        controller.setPreviewMinute(minute);
+        const h = String(Math.floor(minute / 60)).padStart(2, '0');
+        const m = String(minute % 60).padStart(2, '0');
+        clock.textContent = `${h}:${m}`;
+        // Read the phase from the resolver, not the controller. setPreviewMinute
+        // applies through a scheduler, so getSnapshot() immediately afterwards
+        // still holds the previous minute and the label lags a frame behind the
+        // colours. resolveThemeAt is pure and synchronous.
+        phase.textContent = resolveThemeAt(system, minute).phase;
+        fill.style.width = `${((minute + 1) / 1440) * 100}%`;
+      };
+
+      window.renderMinute(0);
+      window.__ready = true;
+    </script>
+  </body>
+</html>

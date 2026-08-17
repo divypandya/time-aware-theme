@@ -21,7 +21,9 @@ a user finds at dusk, and ships four palettes certified against it.
 Recording of [examples/vanilla-dom](examples/vanilla-dom): dragging the
 time-of-day slider (or hitting **Play 24h**) calls the real
 `createThemeController`, which writes the `--tat-*` custom properties you see
-updating live — this isn't a mockup.
+updating live — this isn't a mockup. Every frame is captured from a headless
+browser running the shipped controller (`npm run demo:gif`), so the animation
+cannot drift from what the package actually resolves.
 
 ## Stats
 
@@ -323,6 +325,17 @@ const controller = createThemeController({ system: dawnToDusk, document });
 
 Each ships `background`, `foreground`, `surface`, `surfaceForeground`, `accent`
 and `accentForeground`, with all three pairs declared as roles.
+
+A full day of each, one frame per 15 minutes:
+
+|                                                                                                                  |                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **dawn-to-dusk** — warm arc<br>![dawn-to-dusk cycling through a day](assets/preset-dawn-to-dusk.gif)             | **tidal** — cool arc<br>![tidal cycling through a day](assets/preset-tidal.gif)        |
+| **contrast-first** — AAA everywhere<br>![contrast-first cycling through a day](assets/preset-contrast-first.gif) | **paper** — near-achromatic<br>![paper cycling through a day](assets/preset-paper.gif) |
+
+Note how `contrast-first` barely changes lightness across the day — it carries
+time of day in hue and chroma instead, because lightness is the budget contrast
+spends.
 
 Preset colours are public API: changing a value is a breaking change, and new
 arcs ship under new names rather than as revisions. Backgrounds and accents are
