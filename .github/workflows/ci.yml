@@ -7,6 +7,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # playwright is a devDependency only for regenerating the README
+      # animations (npm run demo:gif). CI never captures frames, so skip the
+      # ~130MB browser download on every run.
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
