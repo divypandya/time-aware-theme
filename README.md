@@ -16,7 +16,7 @@ stop moves toward a dark-on-light one, the two tokens cross and text goes
 briefly invisible. This package makes that a build error rather than something
 a user finds at dusk, and ships four palettes certified against it.
 
-![Recording of the theme cycling through a full day, driven by the real DOM controller](assets/demo.gif)
+![Recording of the theme cycling through a full day, driven by the real DOM controller](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/demo.gif)
 
 Recording of [examples/vanilla-dom](examples/vanilla-dom): dragging the
 time-of-day slider (or hitting **Play 24h**) calls the real
@@ -328,10 +328,10 @@ and `accentForeground`, with all three pairs declared as roles.
 
 A full day of each, one frame per 15 minutes:
 
-|                                                                                                                  |                                                                                        |
-| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **dawn-to-dusk** — warm arc<br>![dawn-to-dusk cycling through a day](assets/preset-dawn-to-dusk.gif)             | **tidal** — cool arc<br>![tidal cycling through a day](assets/preset-tidal.gif)        |
-| **contrast-first** — AAA everywhere<br>![contrast-first cycling through a day](assets/preset-contrast-first.gif) | **paper** — near-achromatic<br>![paper cycling through a day](assets/preset-paper.gif) |
+|                                                                                                                                                                                     |                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **dawn-to-dusk** — warm arc<br>![dawn-to-dusk cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-dawn-to-dusk.gif)             | **tidal** — cool arc<br>![tidal cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-tidal.gif)        |
+| **contrast-first** — AAA everywhere<br>![contrast-first cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-contrast-first.gif) | **paper** — near-achromatic<br>![paper cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-paper.gif) |
 
 Note how `contrast-first` barely changes lightness across the day — it carries
 time of day in hue and chroma instead, because lightness is the budget contrast
