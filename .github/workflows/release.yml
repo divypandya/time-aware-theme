@@ -33,8 +33,12 @@ jobs:
           # anyway, so nothing is lost by omitting it.
       # Pinned so the release job is reproducible: this previously installed
       # npm@latest, so v0.1.0 and the v0.2.0 attempt silently ran on different
-      # majors. Trusted publishing requires >= 11.5.1.
-      - run: npm install -g npm@11.19.0
+      # majors. Trusted publishing requires >= 11.5.1, but 11.19.0 does not
+      # perform the OIDC token exchange at all — it reports ENEEDAUTH with no
+      # credentials configured, even with id-token: write available and the
+      # provenance signer able to obtain a token. 12.x is the line that
+      # actually implements it. Upgrade deliberately, not per-run.
+      - run: npm install -g npm@12.0.2
       - run: npm ci
       - run: node scripts/check-release-version.mjs
         env:
