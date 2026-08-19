@@ -62,6 +62,10 @@
       "types": "./dist/inspect.d.ts",
       "import": "./dist/inspect.js"
     },
+    "./solve": {
+      "types": "./dist/solve.d.ts",
+      "import": "./dist/solve.js"
+    },
     "./tailwind": {
       "types": "./dist/tailwind.d.ts",
       "import": "./dist/tailwind.js"

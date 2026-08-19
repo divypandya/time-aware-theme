@@ -8,6 +8,7 @@ export default defineConfig({
     'src/react-ui.tsx',
     'src/testing.ts',
     'src/inspect.ts',
+    'src/solve.ts',
     'src/tailwind.ts',
     'src/presets/dawn-to-dusk.ts',
     'src/presets/tidal.ts',
