@@ -5,6 +5,152 @@ All notable changes to this package are documented here.
 This project follows [Semantic Versioning](https://semver.org/). While the
 package is pre-1.0, minor versions may contain breaking changes.
 
+## 0.3.0 — 2026-08-20
+
+Driven by a second round of integration feedback, and by one larger complaint:
+that transitions between stops still felt "abrupt and discrete instead of a
+smooth continuous function".
+
+That complaint turned out to have a definite answer, and it is not the one
+anyone wants. A light-to-dark transition **cannot** be made gradual. Contrast
+is a ratio, so the set of legible background/foreground pairs has two
+disconnected halves — light-on-dark and dark-on-light — and any continuous path
+from one to the other passes through the gap where nothing is readable. We
+measured the alternatives before accepting this: carrying the change in chroma
+and hue instead of lightness tops out at **1.2:1** against the 4.5 that AA
+needs.
+
+So the theme still steps. What changed is that it now steps as little as the
+maths allows, at a moment computed rather than chosen, and everything around
+that step got sharper.
+
+### Added
+
+- **`/solve` — a new build-time entry point.**
+
+  `solveSchedule` takes a plain curve with no `appearance` and works out where
+  the theme has to change polarity and by how little. Backgrounds glide the
+  whole way; foregrounds hold and change once, at the last minute the outgoing
+  set is still legible. Output is ordinary stops, so the resolver is unchanged
+  and hand-written schedules keep working.
+
+  `extendPreset` adds tokens to an already-certified schedule without dropping
+  them outside that guarantee. Foregrounds pinned with `{ on: 'surface' }` are
+  solved at every stop and declare their own role pair; supplied arcs must
+  appear in a role or be marked `decorative: true`. Supplied colours are
+  checked, never adjusted — quietly repainting a brand colour to reach a ratio
+  is worse than reporting that it does not reach one.
+
+- **A transition contract for the frame at the step.** The controller sets
+  `data-theme-flip` on its target for the frame in which a declared jump
+  applies, so a stylesheet can suppress the animation across exactly that
+  change:
+
+  ```css
+  [data-theme-flip] * {
+    transition: none !important;
+  }
+  ```
+
+  `tailwindCss()` now includes this rule; `transitionCss()` emits it alone.
+  This closes a live defect: with `transition: background-color .35s` the
+  browser fades straight through the crossing, painting **1.02:1 for roughly
+  100ms**, while every gate stayed green. The resolver was spotless and the
+  screen was not. `assertRenderedPath()` now checks those in-between frames.
+
+- **Sub-minute resolution.** `resolveThemeAt(system, 331.5)` is a real answer,
+  the controller ticks sub-minute where a schedule needs it, and
+  `assertContrast(system, { stepMinutes: PER_SECOND })` sweeps 86,400 samples.
+
+- **Fix directions on contrast failures.** Every violation now carries the
+  smallest lightness change that clears the bar, per token, per direction, in
+  the units the stops are written in. Directions that cannot get there are
+  marked rather than omitted, and shared tokens are flagged with the other
+  pairs that use them.
+
+- **`maxChromaInGamut(l, h)` and `clampChromaToGamut(color)`**, from
+  `/testing`. The bisection already existed inside the preset generator, where
+  nobody using the package could reach it.
+
+- **`parseOklch`**, the missing half of a pair that has been lopsided since
+  0.1 — `serializeOklch` was public while the direction people actually need
+  was not.
+
+- **Hold windows in `inspectSchedule()`**, reported on passing schedules too.
+  Every legible light/dark theme has at least one step, it is the one moment a
+  user notices, and a report that stays silent about it is hiding its most
+  interesting minute.
+
+### Changed
+
+- **All four presets regenerated through the solver.** Phase durations now come
+  from the curve rather than from wherever the switch happened to land:
+
+  ```
+  before   night 10.0h  dawn 1.5h  sunrise 5.5h  midday 4.5h  afternoon 2.5h  dusk 0.0h
+  after    night  7.0h  dawn 2.0h  sunrise 5.0h  midday 4.5h  afternoon 3.5h  dusk 2.0h
+  ```
+
+  The `dusk` phase previously held its label for a single minute in all four
+  presets — it existed only as the snap stop. And the step itself is much
+  smaller, because it is now computed instead of assumed:
+
+  | Preset           | Step before | Step after (dawn / dusk) |
+  | ---------------- | ----------- | ------------------------ |
+  | `dawn-to-dusk`   | 0.735       | 0.412 / 0.365            |
+  | `tidal`          | 0.735       | 0.456 / 0.420            |
+  | `paper`          | 0.735       | 0.435 / 0.418            |
+  | `contrast-first` | 0.845       | 0.795 / 0.784            |
+
+  `contrast-first` barely improves, and that is structural rather than a
+  shortfall: AAA requires the background to travel from dark enough for light
+  text all the way to light enough for dark text in one step, which with its
+  own text colours is nearly the whole range. If you want the smallest possible
+  step, it is the wrong preset.
+
+  Token values changed throughout. Visually this is the same four themes with
+  the same character; if you have screenshot tests against preset output, they
+  will need regenerating.
+
+- **`normalizeMinute` no longer truncates.** This is the substantive breaking
+  change. Before 0.3 the entire crossing guarantee rested on truncation: two
+  stops a minute apart had no sampleable interior, so the crossing could not be
+  rendered. That worked and was brittle — sampling any finer reintroduced the
+  bug, and it did, with **38 of 61 seconds** between two such stops below AA
+  once we looked. Safety now comes from `jumpAfter` being declared on the stop,
+  which holds at any resolution.
+
+  Schedules built with `holdThenSnap()` are migrated automatically: a
+  one-minute gap between stops that swap appearance is read as a declared jump.
+  Schedules that relied on truncation some other way are not, and
+  `defineThemeSystem` will tell you which stop pair is the problem.
+
+- **`ThemeStopInput` gains `jumpAfter`; `ThemeSnapshot` gains `holding`.**
+
+- **Contrast certification runs per second**, and additionally checks the
+  frames a CSS transition would paint between resolved values.
+
+### Fixed
+
+- **Text went invisible for about 100ms at every switch, on screen, in a build
+  where every gate was green.** `assertContrast` proves each resolved moment is
+  legible and says nothing about the frames a CSS transition paints between
+  them; with `transition: background-color .35s` the browser fades straight
+  through the crossing at roughly 1.02:1. Our own demo did this. Fixed by the
+  `data-theme-flip` contract above, and caught from now on by
+  `assertRenderedPath()`, which is part of `npm run certify`.
+
+  If you animate your custom properties and do not adopt the CSS rule, this
+  defect is still present in your app. It is the one thing in this release
+  worth acting on immediately.
+
+### Notes on size
+
+The DOM entry grew from ~5.2 KB to ~5.6 KB gzipped against a 6.5 KB budget,
+which is the transition contract and the hold state. `/solve` is build-time and
+carries the luminance maths; call it at module scope, not per request. Nothing
+new reaches the presets or core.
+
 ## 0.2.1 — 2026-08-17
 
 Documentation only. **No code changes** — `dist` is byte-identical to 0.2.0, so
