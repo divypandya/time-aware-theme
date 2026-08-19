@@ -1,9 +1,11 @@
 import { defineThemeSystem, holdThenSnap } from '../../dist/index.js';
 
 // Palettes either side of each appearance swap. Both swaps go through
-// holdThenSnap() so the foreground/background crossing occupies a single
-// minute and can never be sampled — lerping straight through a swap is what
-// made this demo render invisible text around 06:00.
+// holdThenSnap(), which marks the earlier stop `jumpAfter` so the resolver
+// holds it and then changes instantly rather than blending across — lerping
+// straight through a swap is what made this demo render invisible text around
+// 06:00, and relying on whole-minute rounding to avoid it is what made the
+// same bug reappear the moment anything sampled more finely.
 const dawn = {
   background: 'oklch(0.2 0.04 280 / 1)',
   foreground: 'oklch(0.94 0.015 280 / 1)',

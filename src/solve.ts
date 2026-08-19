@@ -276,7 +276,13 @@ export function solveSchedule<
     if (afterMinute !== next.minute) {
       stops.push({
         minute: afterMinute,
-        phase: next.phase,
+        // Keeps the *current* phase, not the one being moved toward. The
+        // switch is a colour event; the phase is how the author labelled the
+        // day, and the two are independent. Advancing the label at the switch
+        // collapses whichever phase the switch happens to land near — at AAA
+        // the switch lands minutes into the interval, which reduced `dawn` to
+        // six minutes. That is the one-minute-dusk defect wearing a new hat.
+        phase: current.phase,
         appearance: appearanceOf(solved.after, roles),
         tokens: serialize(solved.after) as TTokens
       });
