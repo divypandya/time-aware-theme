@@ -711,6 +711,19 @@ function warn(message: string): void {
   }
 }
 
+/**
+ * Parses an OKLCH string or partial object into a frozen colour.
+ *
+ * The counterpart to `serializeOklch`, which has been public since 0.1 while
+ * the direction people actually need — from what they wrote in a stop to
+ * numbers they can do maths on — was internal. Anything reasoning about a
+ * theme (extending one, fitting a brand colour to it, writing a bespoke
+ * check) needs this first.
+ */
+export function parseOklch(input: OklchInput, label = 'color'): OklchColor {
+  return normalizeOklch(input, label);
+}
+
 function normalizeOklch(input: OklchInput, label: string): OklchColor {
   if (typeof input === 'string') {
     return parseOklchString(input, label);

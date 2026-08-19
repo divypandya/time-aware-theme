@@ -9,9 +9,12 @@ import {
 import { contrastRatio, contrastThreshold } from './contrast.js';
 
 export {
+  GAMUT_CHROMA_SAFETY,
+  clampChromaToGamut,
   contrastRatio,
   contrastThreshold,
   isOutOfSrgbGamut,
+  maxChromaInGamut,
   meetsContrast,
   meetsWcagAA,
   relativeLuminance

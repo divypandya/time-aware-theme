@@ -17,6 +17,8 @@ import { writeFileSync } from 'node:fs';
 import { defineThemeSystem } from '../dist/index.js';
 import { solveSchedule } from '../dist/solve.js';
 import {
+  GAMUT_CHROMA_SAFETY,
+  clampChromaToGamut,
   contrastRatio,
   findContrastViolations,
   isOutOfSrgbGamut,
@@ -26,29 +28,11 @@ import {
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const round = (value, places = 4) => Number.parseFloat(value.toFixed(places));
 
-/** Largest in-gamut chroma for a given lightness and hue. */
-function maxChroma(l, h) {
-  let low = 0;
-  let high = 0.4;
-  for (let i = 0; i < 32; i += 1) {
-    const mid = (low + high) / 2;
-    if (isOutOfSrgbGamut({ l, c: mid, h, alpha: 1 })) {
-      high = mid;
-    } else {
-      low = mid;
-    }
-  }
-  return low;
-}
-
-// Interpolating between two in-gamut OKLCH colours can still leave the sRGB
-// gamut — the gamut is not convex in this space. Measured 18 of 101 samples
-// out of gamut between two fitted near-white endpoints. Hence a real margin
-// rather than shaving the last two percent.
-const CHROMA_SAFETY = 0.86;
-
+// The bisection and the safety margin both live in the package now, exported
+// from /testing, so a user fitting their own colours gets the same answer this
+// generator does rather than a near-copy that drifts.
 function fit(color) {
-  const c = Math.min(color.c, maxChroma(color.l, color.h) * CHROMA_SAFETY);
+  const c = clampChromaToGamut({ ...color, alpha: 1 }, GAMUT_CHROMA_SAFETY).c;
   return { l: round(color.l), c: round(c), h: round(color.h, 2), alpha: 1 };
 }
 
