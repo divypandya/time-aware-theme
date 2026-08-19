@@ -7,10 +7,11 @@
  * from a run that passed. It reported 166 sub-AA minutes on every push for
  * the lifetime of the package and blocked nothing.
  *
- * Every schedule shipped or referenced by this repo is asserted across all
- * 1,440 integer minutes. Sampling every minute is exhaustive rather than
- * approximate: normalizeMinute() truncates, so integer minutes are the
- * complete set of observable states.
+ * Every schedule shipped or referenced by this repo is swept once per second.
+ * Before 0.3 this ran per minute, because whole-minute rounding was what kept
+ * a polarity swap from ever being rendered. Jumps are now declared on the stop
+ * and never interpolated, so the guarantee no longer depends on how often we
+ * look — and sampling finer simply makes the check sharper.
  */
 import {
   contrastRatio,
@@ -20,6 +21,12 @@ import {
   sampleSchedule
 } from '../dist/testing.js';
 import { createFixtureSystem } from './fixture.mjs';
+
+// Sample every second, not every minute. Before 0.3 the crossing guarantee
+// rested on whole-minute rounding, so a finer sweep would have reported the
+// swap as a failure. Now that jumps are declared and never interpolated,
+// sampling finer simply makes the check stricter.
+const STEP = 1 / 60;
 import { demoThemeSystem } from '../examples/vanilla-dom/theme-system.js';
 import dawnToDusk from '../dist/presets/dawn-to-dusk.js';
 import tidal from '../dist/presets/tidal.js';
@@ -73,7 +80,7 @@ for (const { label, system } of subjects) {
   // 1. Resolution must never throw, and must stay in sRGB gamut.
   let samples = [];
   try {
-    samples = sampleSchedule(system);
+    samples = sampleSchedule(system, { stepMinutes: STEP });
   } catch (error) {
     problems.push(`resolve threw: ${error.message}`);
   }
@@ -122,7 +129,7 @@ for (const { label, system } of subjects) {
   }
 
   // 3. Every declared role pair must meet its declared level, every minute.
-  const violations = findContrastViolations(system);
+  const violations = findContrastViolations(system, { stepMinutes: STEP });
   for (const window of toWindows(violations)) {
     const { worst } = window;
     problems.push(
@@ -135,7 +142,7 @@ for (const { label, system } of subjects) {
 
   if (problems.length === 0) {
     console.log(
-      `PASS  ${label}: 1,440 minutes, ${system.roles.length} role pair(s)`
+      `PASS  ${label}: ${(1440 / STEP).toLocaleString()} samples (per second), ${system.roles.length} role pair(s)`
     );
   } else {
     failed = true;

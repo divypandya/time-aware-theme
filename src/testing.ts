@@ -20,21 +20,34 @@ export interface SampleScheduleOptions {
   readonly stepMinutes?: number;
 }
 
+/** Sample every second rather than every minute. */
+export const PER_SECOND = 1 / 60;
+
 /**
  * Resolves a schedule across the whole day.
  *
- * Default step of 1 minute is exhaustive rather than approximate:
- * `normalizeMinute` truncates, so integer minutes are the complete set of
- * states a consumer can ever observe.
+ * Defaults to one sample a minute. Pass `PER_SECOND` (or any fraction) for a
+ * sharper sweep — declared jumps hold at any resolution, so finer sampling
+ * cannot manufacture a failure the way it would have before 0.3.
  */
 export function sampleSchedule<TPhase extends string = string>(
   system: ThemeSystem<TPhase>,
   options: SampleScheduleOptions = {}
 ): readonly ThemeSnapshot<TPhase>[] {
-  const step = Math.max(1, Math.trunc(options.stepMinutes ?? 1));
+  // Fractional steps are allowed since 0.3: safety comes from declared jumps
+  // rather than from whole-minute sampling, so finer sampling is a sharper
+  // check rather than a source of false failures.
+  const step = options.stepMinutes ?? 1;
+  if (!(step > 0)) {
+    throw new TypeError('sampleSchedule() stepMinutes must be positive.');
+  }
+  // Derive each sample by multiplication rather than accumulating the step.
+  // Adding 1/60 eighty-six-thousand times drifts far enough to yield an extra
+  // sample, and to leave every sampled minute slightly off its nominal value.
+  const count = Math.ceil(MINUTES_PER_DAY / step);
   const samples: ThemeSnapshot<TPhase>[] = [];
-  for (let minute = 0; minute < MINUTES_PER_DAY; minute += step) {
-    samples.push(resolveThemeAt(system, minute));
+  for (let index = 0; index < count; index += 1) {
+    samples.push(resolveThemeAt(system, index * step));
   }
   return samples;
 }
@@ -140,8 +153,9 @@ export function assertContrast<TPhase extends string = string>(
       `("${worst.fg}" on "${worst.bg}", needs ${worst.required}:1)\n` +
       `  Interval: ${worst.phase} -> ${worst.nextPhase} at t=` +
       `${worst.progress.toFixed(2)}\n` +
-      `  If the pair swaps sides here, use holdThenSnap() so the crossing ` +
-      `occupies a single minute.`
+      `  If the pair swaps sides here, mark the earlier stop ` +
+      '`jumpAfter: true` (or use holdThenSnap) so the crossing is held and ' +
+      'then instant rather than blended through.'
   );
 }
 
