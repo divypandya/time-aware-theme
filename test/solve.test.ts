@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { defineThemeSystem } from '../src/core.js';
 import { solveSchedule } from '../src/solve.js';
-import { PER_SECOND, findContrastViolations } from '../src/testing.js';
+import {
+  PER_SECOND,
+  assertRenderedPath,
+  findContrastViolations,
+  findRenderedPathViolations
+} from '../src/testing.js';
 
 const roles = {
   pairs: [{ bg: 'background', fg: 'foreground', min: 'AA' as const }]
@@ -192,5 +197,100 @@ describe('solveSchedule', () => {
         ]
       })
     ).toThrow(/requires roles/);
+  });
+});
+
+describe('the rendered path', () => {
+  // A dimmer night, so the intervals actually interpolate — a cycle that holds
+  // identical tokens either side has no frames to inspect.
+  // Clears AA at 4.66:1 but not AAA, so an AAA sweep finds frames partway
+  // through the interval rather than only at its endpoints.
+  const nightDim = {
+    background: 'oklch(0.46 0.03 265 / 1)',
+    foreground: 'oklch(0.86 0.015 265 / 1)'
+  };
+
+  /** A complete cycle: every polarity swap declared, so the lint is satisfied. */
+  function cycle() {
+    return defineThemeSystem({
+      staticThemes: { light: day, dark: night },
+      roles: { pairs: [{ bg: 'background', fg: 'foreground', min: 'AA' }] },
+      stops: [
+        { minute: 0, appearance: 'dark', phase: 'night', tokens: night },
+        {
+          minute: 600,
+          appearance: 'dark',
+          phase: 'night',
+          tokens: nightDim,
+          jumpAfter: true
+        },
+        { minute: 601, appearance: 'light', phase: 'day', tokens: day },
+        {
+          minute: 1200,
+          appearance: 'light',
+          phase: 'day',
+          tokens: day,
+          jumpAfter: true
+        },
+        { minute: 1201, appearance: 'dark', phase: 'night', tokens: night }
+      ]
+    });
+  }
+
+  it('skips declared holds, because nothing is blended across them', () => {
+    const system = cycle();
+    // Clean at every resolved moment, and clean in the frames between them:
+    // the only discontinuities are declared, and the controller suppresses
+    // the transition across exactly those.
+    expect(findContrastViolations(system, { stepMinutes: PER_SECOND })).toEqual(
+      []
+    );
+    expect(findRenderedPathViolations(system)).toEqual([]);
+  });
+
+  it('reports frames a transition would paint below the level', () => {
+    // Same schedule held to a bar it was never built for: the frames between
+    // minutes are inspected, not just the values at them.
+    const violations = findRenderedPathViolations(cycle(), { level: 'AAA' });
+    expect(violations.length).toBeGreaterThan(0);
+    expect(violations[0]?.progress).toBeGreaterThan(0);
+    expect(violations[0]?.progress).toBeLessThan(1);
+    expect(() => {
+      assertRenderedPath(cycle(), { level: 'AAA' });
+    }).toThrow(/would paint below/);
+  });
+
+  it('honours a coarser frame count', () => {
+    // Fewer probes per interval: still inspects between the values, just less
+    // finely. One step means only the endpoints, so nothing in between.
+    expect(
+      findRenderedPathViolations(cycle(), { level: 'AAA', steps: 1 })
+    ).toEqual([]);
+    expect(
+      findRenderedPathViolations(cycle(), { level: 'AAA', steps: 24 }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('skips a pair whose tokens are missing', () => {
+    const partial = defineThemeSystem({
+      staticThemes: { light: day, dark: night },
+      roles: { pairs: [{ bg: 'background', fg: 'foreground', min: 'AA' }] },
+      stops: [
+        { minute: 0, appearance: 'dark', phase: 'night', tokens: night },
+        { minute: 720, appearance: 'dark', phase: 'late', tokens: night }
+      ]
+    });
+    expect(findRenderedPathViolations(partial)).toEqual([]);
+  });
+
+  it('needs roles to have anything to check', () => {
+    const roleless = defineThemeSystem({
+      staticThemes: { light: day, dark: night },
+      stops: [
+        { minute: 0, appearance: 'dark', phase: 'night', tokens: night },
+        { minute: 720, phase: 'later', appearance: 'dark', tokens: night }
+      ]
+    });
+    expect(() => findRenderedPathViolations(roleless)).toThrow(/declare roles/);
   });
 });

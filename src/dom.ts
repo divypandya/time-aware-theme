@@ -57,6 +57,19 @@ export interface ThemeControllerOptions<TPhase extends string = string> {
    * `target` is not the document element.
    */
   readonly scoped?: boolean;
+  /**
+   * Attribute set on the target for a single frame when the theme changes
+   * discontinuously, so a stylesheet can switch off transitions across it.
+   *
+   * The resolver never blends across a declared switch, but the browser will:
+   * given `transition: background-color .35s`, it animates between two clean
+   * values and paints the crossing on the way — 1.02:1 for roughly 100ms in
+   * our own demo. Pair this with
+   * `[data-theme-flip] * { transition: none !important; }`.
+   *
+   * Pass `null` to opt out.
+   */
+  readonly flipAttribute?: string | null;
 }
 
 export interface ThemeControllerSnapshot<TPhase extends string = string> {
@@ -112,6 +125,10 @@ export function createThemeController<TPhase extends string = string>(
       ? DEFAULT_PREFIX
       : options.cssVariablePrefix;
   const target = options.target ?? doc?.documentElement ?? null;
+  const flipAttribute =
+    options.flipAttribute === undefined
+      ? 'data-theme-flip'
+      : options.flipAttribute;
   const scoped =
     options.scoped ?? (target !== null && target !== doc?.documentElement);
 
@@ -129,6 +146,10 @@ export function createThemeController<TPhase extends string = string>(
   let offsetMinutes = clock.now().getTimezoneOffset();
   let lastAppliedCssText = '';
   let lastAppliedAppearance: ThemeAppearance | null = null;
+  // True when the previous applied snapshot sat inside a declared hold, so the
+  // next change of value is the instant one rather than a blend.
+  let heldBeforeThisChange = false;
+  let clearFlipHandle: unknown = null;
   let currentSnapshot = freezeControllerSnapshot({
     mode,
     appearance: mode === 'dark' ? 'dark' : 'light',
@@ -172,6 +193,12 @@ export function createThemeController<TPhase extends string = string>(
     started = false;
     clearMinuteTimer();
     clearRaf();
+    if (clearFlipHandle !== null) {
+      if (scheduler) scheduler.cancelAnimationFrame(clearFlipHandle);
+      else clock.clearTimeout(clearFlipHandle);
+      clearFlipHandle = null;
+    }
+    clearFlipAttribute(target);
     while (detachListeners.length > 0) {
       const detach = detachListeners.pop();
       detach?.();
@@ -297,6 +324,12 @@ export function createThemeController<TPhase extends string = string>(
 
     const root = target;
 
+    // Record this before the early return below. A hold produces no DOM write
+    // at all — the values are unchanged, that is what holding means — so
+    // updating it afterwards loses the very state the switch is detected from.
+    const wasHolding = heldBeforeThisChange;
+    heldBeforeThisChange = snapshot.holding;
+
     if (
       snapshot.cssText === lastAppliedCssText &&
       snapshot.appearance === lastAppliedAppearance &&
@@ -304,6 +337,19 @@ export function createThemeController<TPhase extends string = string>(
       snapshot.phase === root.dataset.themePhase
     ) {
       return;
+    }
+
+    // Leaving a hold is the discontinuity. Flag it before writing, so a
+    // stylesheet can suppress the transition for exactly this change.
+    const crossingAJump = wasHolding && snapshot.cssText !== lastAppliedCssText;
+    if (crossingAJump && flipAttribute) {
+      // Guarded: a minimal document stub is a legitimate thing to pass, and a
+      // missing attribute API should degrade to "no signal" rather than throw
+      // in the middle of applying a theme.
+      if (typeof root.setAttribute === 'function') {
+        root.setAttribute(flipAttribute, '');
+        scheduleFlipClear(root);
+      }
     }
 
     const style = root.style;
@@ -324,6 +370,34 @@ export function createThemeController<TPhase extends string = string>(
     root.dataset.themePhase = snapshot.phase;
     lastAppliedCssText = snapshot.cssText;
     lastAppliedAppearance = snapshot.appearance;
+  }
+
+  /** Remove the flag on the next frame, once the instant change has painted. */
+  function scheduleFlipClear(root: HTMLElement): void {
+    if (!flipAttribute) {
+      return;
+    }
+    if (clearFlipHandle !== null) {
+      if (scheduler) scheduler.cancelAnimationFrame(clearFlipHandle);
+      else clock.clearTimeout(clearFlipHandle);
+      clearFlipHandle = null;
+    }
+    const clear = (): void => {
+      clearFlipHandle = null;
+      clearFlipAttribute(root);
+    };
+    clearFlipHandle = scheduler
+      ? scheduler.requestAnimationFrame(() => {
+          clear();
+        })
+      : clock.setTimeout(clear, 0);
+  }
+
+  function clearFlipAttribute(root: HTMLElement | null): void {
+    if (!flipAttribute || !root || typeof root.removeAttribute !== 'function') {
+      return;
+    }
+    root.removeAttribute(flipAttribute);
   }
 
   function scheduleNextMinute(): void {

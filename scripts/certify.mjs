@@ -17,6 +17,7 @@ import {
   contrastRatio,
   contrastThreshold,
   findContrastViolations,
+  findRenderedPathViolations,
   isOutOfSrgbGamut,
   sampleSchedule
 } from '../dist/testing.js';
@@ -137,6 +138,20 @@ for (const { label, system } of subjects) {
         `"${worst.fg}" on "${worst.bg}" from ${formatMinute(window.start)} to ` +
         `${formatMinute(window.end)}; worst at ${formatMinute(worst.minute)} ` +
         `(${worst.phase} -> ${worst.nextPhase}, t=${worst.progress.toFixed(2)})`
+    );
+  }
+
+  // 4. What a CSS transition would paint between consecutive minutes. The
+  //    three checks above prove our values are clean and say nothing about the
+  //    frames a browser draws on the way from one to the next.
+  const painted = findRenderedPathViolations(system);
+  if (painted.length > 0) {
+    const worst = painted.reduce((a, b) => (b.actual < a.actual ? b : a));
+    problems.push(
+      `a transition would paint ${worst.actual.toFixed(2)}:1 (needs ` +
+        `${worst.required}:1) for "${worst.fg}" on "${worst.bg}" between ` +
+        `${formatMinute(worst.minute)} and the next minute, on ` +
+        `${painted.length} frame(s)`
     );
   }
 

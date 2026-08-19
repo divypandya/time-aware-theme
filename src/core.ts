@@ -129,6 +129,16 @@ export interface ThemeSnapshot<TPhase extends string = string> {
   readonly nextPhase: TPhase | 'static';
   /** Appearance of the stop being interpolated toward. Wraps at end of day. */
   readonly nextAppearance: ThemeAppearance;
+  /**
+   * True while inside a declared hold — the tokens are frozen and will change
+   * instantly at the next stop rather than blending into it.
+   *
+   * The controller uses this to tell the browser not to animate that change.
+   * Without it the resolver is clean at every sampled moment while the browser
+   * still paints its way through the crossing: our own demo, with a 0.35s
+   * colour transition, renders 1.02:1 for roughly 100ms at the switch.
+   */
+  readonly holding: boolean;
 }
 
 export interface ThemeCssSnapshot {
@@ -264,7 +274,8 @@ export function resolveThemeAt<TPhase extends string = string>(
       cssText: toCssText(system.tokenKeys, stop.tokens),
       progress: 0,
       nextPhase: stop.phase,
-      nextAppearance: stop.appearance
+      nextAppearance: stop.appearance,
+      holding: stop.jumpAfter
     });
   }
 
@@ -290,7 +301,8 @@ export function resolveThemeAt<TPhase extends string = string>(
       cssText: toCssText(system.tokenKeys, exact.tokens),
       progress: 0,
       nextPhase: following.phase,
-      nextAppearance: following.appearance
+      nextAppearance: following.appearance,
+      holding: exact.jumpAfter
     });
   }
 
@@ -315,7 +327,8 @@ export function resolveThemeAt<TPhase extends string = string>(
     cssText: toCssText(system.tokenKeys, tokens),
     progress: t,
     nextPhase: next.phase,
-    nextAppearance: next.appearance
+    nextAppearance: next.appearance,
+    holding: previous.jumpAfter
   });
 }
 
@@ -335,7 +348,8 @@ export function resolveThemeSnapshot<TPhase extends string = string>(
       cssText: toCssText(system.tokenKeys, tokens),
       progress: 0,
       nextPhase: 'static',
-      nextAppearance: mode
+      nextAppearance: mode,
+      holding: false
     }) as ThemeSnapshot<TPhase>;
   }
 

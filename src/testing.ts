@@ -2,6 +2,7 @@ import {
   MINUTES_PER_DAY,
   resolveThemeAt,
   type ContrastLevel,
+  type OklchColor,
   type ThemeSnapshot,
   type ThemeSystem
 } from './core.js';
@@ -157,6 +158,119 @@ export function assertContrast<TPhase extends string = string>(
       '`jumpAfter: true` (or use holdThenSnap) so the crossing is held and ' +
       'then instant rather than blended through.'
   );
+}
+
+export interface RenderedPathOptions {
+  readonly level?: ContrastLevel;
+  /** How many frames to check between consecutive minutes. */
+  readonly steps?: number;
+}
+
+/**
+ * Checks what the browser paints *between* our values, not just the values.
+ *
+ * `assertContrast` proves every resolved moment is legible. It says nothing
+ * about the frames a CSS transition draws on the way from one to the next —
+ * and with `transition: background-color .35s` the browser fades straight
+ * through the crossing, painting 1.02:1 for roughly 100ms. The resolver is
+ * spotless and the screen is not.
+ *
+ * Intervals ending in a declared hold are skipped: those are the ones the
+ * controller flags so a stylesheet can suppress the transition, so there is no
+ * blend to check.
+ */
+export function findRenderedPathViolations<TPhase extends string = string>(
+  system: ThemeSystem<TPhase>,
+  options: RenderedPathOptions = {}
+): readonly ContrastViolation[] {
+  if (system.roles.length === 0) {
+    throw new TypeError(
+      'findRenderedPathViolations() requires the theme system to declare roles.'
+    );
+  }
+  const steps = Math.max(1, Math.trunc(options.steps ?? 8));
+  const violations: ContrastViolation[] = [];
+
+  for (let minute = 0; minute < MINUTES_PER_DAY; minute += 1) {
+    const from = resolveThemeAt(system, minute);
+    // Held intervals change instantly and are flagged for suppression, so the
+    // browser is told not to draw anything in between.
+    if (from.holding) {
+      continue;
+    }
+    const to = resolveThemeAt(system, (minute + 1) % MINUTES_PER_DAY);
+
+    for (let step = 1; step < steps; step += 1) {
+      const t = step / steps;
+      for (const role of system.roles) {
+        const level = options.level ?? role.min;
+        const bg = blend(from.tokens[role.bg], to.tokens[role.bg], t);
+        const fg = blend(from.tokens[role.fg], to.tokens[role.fg], t);
+        if (!bg || !fg) {
+          continue;
+        }
+        const actual = contrastRatio(bg, fg);
+        const required = contrastThreshold(level);
+        if (actual + 1e-9 < required) {
+          violations.push({
+            minute,
+            phase: from.phase,
+            nextPhase: from.nextPhase,
+            progress: t,
+            bg: role.bg,
+            fg: role.fg,
+            level,
+            required,
+            actual
+          });
+        }
+      }
+    }
+  }
+  return violations;
+}
+
+/** Throws if any frame a transition would paint drops below its level. */
+export function assertRenderedPath<TPhase extends string = string>(
+  system: ThemeSystem<TPhase>,
+  options: RenderedPathOptions = {}
+): void {
+  const violations = findRenderedPathViolations(system, options);
+  if (violations.length === 0) {
+    return;
+  }
+  const worst = violations.reduce((left, right) =>
+    right.actual < left.actual ? right : left
+  );
+  throw new Error(
+    `A CSS transition would paint below ${worst.level} on ` +
+      `${violations.length} frame(s).\n` +
+      `  Worst: ${worst.actual.toFixed(2)}:1 between ` +
+      `${formatMinute(worst.minute)} and the next minute ` +
+      `("${worst.fg}" on "${worst.bg}", needs ${worst.required}:1)\n` +
+      `  The resolved values either side are fine; the frames between them are ` +
+      `not. Either declare the change with \`jumpAfter\` so the controller can ` +
+      `suppress the transition, or move the two values closer together.`
+  );
+}
+
+/** Interpolates the way a browser would between two custom-property values. */
+function blend(
+  from: OklchColor | undefined,
+  to: OklchColor | undefined,
+  t: number
+): OklchColor | undefined {
+  if (!from || !to) {
+    return undefined;
+  }
+  const mixed = from.l + (to.l - from.l) * t;
+  const chroma = from.c + (to.c - from.c) * t;
+  return {
+    l: mixed,
+    c: chroma,
+    h: chroma <= 1e-6 ? null : (from.h ?? to.h ?? 0),
+    alpha: from.alpha + (to.alpha - from.alpha) * t
+  };
 }
 
 export interface ManualClockOptions {

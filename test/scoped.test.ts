@@ -255,3 +255,132 @@ describe('applySnapshotTo', () => {
     ).toBe('');
   });
 });
+
+describe('the switch signal', () => {
+  /**
+   * Holds the frame callback instead of running it, so the flagged frame can
+   * be observed. The manual clock runs a zero-delay timeout inside the same
+   * advance that scheduled it, which collapses the frame the browser would
+   * actually draw.
+   */
+  function heldScheduler() {
+    const queue: (() => void)[] = [];
+    return {
+      requestAnimationFrame(callback: (timestamp: number) => void) {
+        queue.push(() => {
+          callback(0);
+        });
+        return queue.length;
+      },
+      cancelAnimationFrame() {
+        queue.length = 0;
+      },
+      runFrame() {
+        const pending = [...queue];
+        queue.length = 0;
+        for (const run of pending) run();
+      }
+    };
+  }
+
+  function atFixtureSwitch() {
+    const panel = createPanel();
+    const clock = createManualClock({
+      now: new Date('2026-08-16T05:59:30Z'),
+      timezoneOffsetMinutes: 0
+    });
+    const scheduler = heldScheduler();
+    const controller = track(
+      createThemeController({
+        system,
+        document,
+        target: panel,
+        defaultMode: 'time-aware',
+        clock,
+        scheduler
+      })
+    );
+    controller.start();
+    return { panel, clock, scheduler };
+  }
+
+  it('flags the frame where the theme changes discontinuously', () => {
+    const { panel, clock, scheduler } = atFixtureSwitch();
+
+    // 05:59 is an ordinary interval; nothing has changed discontinuously.
+    expect(panel.hasAttribute('data-theme-flip')).toBe(false);
+
+    // 06:00 is the declared hold — same values, still nothing to suppress.
+    clock.advanceBy(60_000);
+    expect(panel.hasAttribute('data-theme-flip')).toBe(false);
+
+    // 06:01 is the instant change. The resolver never blends it, but a CSS
+    // transition would, so the frame is flagged.
+    clock.advanceBy(60_000);
+    expect(panel.hasAttribute('data-theme-flip')).toBe(true);
+
+    // Cleared once that frame has painted, so ordinary drift still eases.
+    scheduler.runFrame();
+    expect(panel.hasAttribute('data-theme-flip')).toBe(false);
+  });
+
+  it('leaves the target clean when disposed mid-switch', () => {
+    const { panel, clock } = atFixtureSwitch();
+    clock.advanceBy(60_000);
+    clock.advanceBy(60_000);
+    expect(panel.hasAttribute('data-theme-flip')).toBe(true);
+    while (controllers.length > 0) controllers.pop()?.dispose();
+    expect(panel.hasAttribute('data-theme-flip')).toBe(false);
+  });
+
+  it('degrades when the target cannot carry attributes', () => {
+    // A minimal document stub is a legitimate thing to pass; a missing
+    // attribute API should mean "no signal", not a throw mid-apply.
+    const stub = {
+      style: { setProperty: () => undefined },
+      classList: { toggle: () => undefined },
+      dataset: {} as Record<string, string>
+    } as unknown as HTMLElement;
+    const clock = createManualClock({
+      now: new Date('2026-08-16T05:59:30Z'),
+      timezoneOffsetMinutes: 0
+    });
+    const controller = track(
+      createThemeController({
+        system,
+        document,
+        target: stub,
+        defaultMode: 'time-aware',
+        clock,
+        scheduler: heldScheduler()
+      })
+    );
+    expect(() => {
+      controller.start();
+      clock.advanceBy(60_000);
+      clock.advanceBy(60_000);
+    }).not.toThrow();
+  });
+
+  it('can be turned off', () => {
+    const panel = createPanel();
+    const clock = createManualClock({
+      now: new Date('2026-08-16T05:59:30Z'),
+      timezoneOffsetMinutes: 0
+    });
+    track(
+      createThemeController({
+        system,
+        document,
+        target: panel,
+        defaultMode: 'time-aware',
+        clock,
+        scheduler: heldScheduler(),
+        flipAttribute: null
+      })
+    ).start();
+    clock.advanceBy(60_000);
+    clock.advanceBy(60_000);
+    expect(panel.hasAttribute('data-theme-flip')).toBe(false);
+  });
+});
