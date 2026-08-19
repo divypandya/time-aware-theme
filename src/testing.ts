@@ -2,11 +2,16 @@ import {
   MINUTES_PER_DAY,
   resolveThemeAt,
   type ContrastLevel,
+  type NormalizedThemeRolePair,
   type OklchColor,
   type ThemeSnapshot,
   type ThemeSystem
 } from './core.js';
-import { contrastRatio, contrastThreshold } from './contrast.js';
+import {
+  clampChromaToGamut,
+  contrastRatio,
+  contrastThreshold
+} from './contrast.js';
 
 export {
   GAMUT_CHROMA_SAFETY,
@@ -56,6 +61,33 @@ export function sampleSchedule<TPhase extends string = string>(
   return samples;
 }
 
+export interface ContrastFix {
+  /** Token to move. */
+  readonly token: string;
+  /** Which side of the pair it is. */
+  readonly side: 'bg' | 'fg';
+  readonly direction: 'lighter' | 'darker';
+  /** OKLCH lightness now. */
+  readonly from: number;
+  /** Nearest lightness in that direction that clears `required`. */
+  readonly to: number;
+  readonly delta: number;
+  /**
+   * False when no lightness clears the bar even at the end of the range, so
+   * this token cannot fix the pair alone and the other one has to move too.
+   */
+  readonly reachable: boolean;
+  /**
+   * Other declared pairs using this same token, as "fg on bg".
+   *
+   * The reason a suggestion is a suggestion. Backgrounds in particular are
+   * usually shared, so darkening one to rescue body text can push a muted
+   * caption the other way — the numbers here are computed for one pair in
+   * isolation and cannot see that.
+   */
+  readonly alsoUsedBy: readonly string[];
+}
+
 export interface ContrastViolation {
   readonly minute: number;
   readonly phase: string;
@@ -66,6 +98,139 @@ export interface ContrastViolation {
   readonly level: ContrastLevel;
   readonly required: number;
   readonly actual: number;
+  /**
+   * Which way to move each token, and how far, to clear `required`.
+   *
+   * Smallest move first, unreachable last. "1.31:1, needs 4.5:1" tells you
+   * something is wrong; it does not tell you whether the background is too
+   * light or the text is, which at a crossing is genuinely ambiguous — both
+   * are mid-grey and either could move. Deltas are in OKLCH lightness, the
+   * unit the stops are written in, so the number can be typed straight into
+   * the offending stop.
+   */
+  readonly fixes: readonly ContrastFix[];
+}
+
+/** Smallest lightness change to `subject` that clears `required` against `against`. */
+function solveFix(
+  token: string,
+  side: 'bg' | 'fg',
+  subject: OklchColor,
+  against: OklchColor,
+  required: number,
+  alsoUsedBy: readonly string[]
+): readonly ContrastFix[] {
+  // Chroma is pinned to the gamut at every candidate, so the ratio being
+  // solved is the one that would actually render rather than the one the
+  // requested chroma implies.
+  const at = (l: number) =>
+    contrastRatio(against, clampChromaToGamut({ ...subject, l }));
+
+  const fixes: ContrastFix[] = [];
+  for (const direction of ['lighter', 'darker'] as const) {
+    // Contrast against a fixed colour is monotone on each side of that
+    // colour's own lightness but turns around at it, so each direction is
+    // searched only on its own side of the turn.
+    const limit = direction === 'lighter' ? 1 : 0;
+    const start =
+      direction === 'lighter'
+        ? Math.max(subject.l, against.l)
+        : Math.min(subject.l, against.l);
+    if (at(limit) + 1e-9 < required) {
+      fixes.push({
+        token,
+        side,
+        direction,
+        from: subject.l,
+        to: limit,
+        delta: Math.abs(limit - subject.l),
+        reachable: false,
+        alsoUsedBy
+      });
+      continue;
+    }
+    let near = start;
+    let far = limit;
+    for (let index = 0; index < 40; index += 1) {
+      const mid = (near + far) / 2;
+      if (at(mid) + 1e-9 < required) {
+        near = mid;
+      } else {
+        far = mid;
+      }
+    }
+    // Round away from the boundary, not to it. The bisection lands on the
+    // exact lightness where the ratio equals the requirement, and a value
+    // typed back into a stop is rounded on the way in — so reporting the
+    // boundary hands over a number that fails by a hair once written down.
+    // Four places is what these stops are authored to.
+    const rounded =
+      direction === 'lighter'
+        ? Math.min(limit, Math.ceil(far * 1e4) / 1e4)
+        : Math.max(limit, Math.floor(far * 1e4) / 1e4);
+    const to = at(rounded) + 1e-9 >= required ? rounded : far;
+    fixes.push({
+      token,
+      side,
+      direction,
+      from: subject.l,
+      to,
+      delta: Math.abs(to - subject.l),
+      reachable: true,
+      alsoUsedBy
+    });
+  }
+
+  return fixes;
+}
+
+function fixesFor(
+  role: NormalizedThemeRolePair,
+  roles: readonly NormalizedThemeRolePair[],
+  bg: OklchColor,
+  fg: OklchColor,
+  required: number
+): readonly ContrastFix[] {
+  const sharing = (token: string) =>
+    roles
+      .filter(
+        (other) => other !== role && (other.bg === token || other.fg === token)
+      )
+      .map((other) => `${other.fg} on ${other.bg}`);
+
+  return [
+    ...solveFix(role.bg, 'bg', bg, fg, required, sharing(role.bg)),
+    ...solveFix(role.fg, 'fg', fg, bg, required, sharing(role.fg))
+  ].sort((left, right) => {
+    if (left.reachable !== right.reachable) return left.reachable ? -1 : 1;
+    return left.delta - right.delta;
+  });
+}
+
+/** One-line rendering of the cheapest fix, for an error message. */
+function describeFix(fixes: readonly ContrastFix[]): string {
+  const best = fixes[0];
+  if (!best) {
+    return '';
+  }
+  if (!best.reachable) {
+    return (
+      `  No single token clears it: "${best.token}" runs out of range at ` +
+      `L=${best.to.toFixed(3)}. Both sides have to move, or the level is too ` +
+      'high for this pair.'
+    );
+  }
+  const shared =
+    best.alsoUsedBy.length > 0
+      ? ` — but "${best.token}" is also used by ` +
+        `${best.alsoUsedBy.map((pair) => `"${pair}"`).join(', ')}, so check ` +
+        'those after moving it'
+      : '';
+  return (
+    `  Smallest fix: "${best.token}" ${best.direction}, ` +
+    `L ${best.from.toFixed(3)} -> ${best.to.toFixed(3)} ` +
+    `(${best.to > best.from ? '+' : ''}${(best.to - best.from).toFixed(3)})${shared}.`
+  );
 }
 
 export interface AssertContrastOptions {
@@ -113,7 +278,8 @@ export function findContrastViolations<TPhase extends string = string>(
           fg: role.fg,
           level,
           required,
-          actual
+          actual,
+          fixes: fixesFor(role, system.roles, bg, fg, required)
         });
       }
     }
@@ -157,6 +323,7 @@ export function assertContrast<TPhase extends string = string>(
       `("${worst.fg}" on "${worst.bg}", needs ${worst.required}:1)\n` +
       `  Interval: ${worst.phase} -> ${worst.nextPhase} at t=` +
       `${worst.progress.toFixed(2)}\n` +
+      `${describeFix(worst.fixes)}\n` +
       `  If the pair swaps sides here, mark the earlier stop ` +
       '`jumpAfter: true` (or use holdThenSnap) so the crossing is held and ' +
       'then instant rather than blended through.'
@@ -224,7 +391,8 @@ export function findRenderedPathViolations<TPhase extends string = string>(
             fg: role.fg,
             level,
             required,
-            actual
+            actual,
+            fixes: fixesFor(role, system.roles, bg, fg, required)
           });
         }
       }
@@ -253,7 +421,8 @@ export function assertRenderedPath<TPhase extends string = string>(
       `("${worst.fg}" on "${worst.bg}", needs ${worst.required}:1)\n` +
       `  The resolved values either side are fine; the frames between them are ` +
       `not. Either declare the change with \`jumpAfter\` so the controller can ` +
-      `suppress the transition, or move the two values closer together.`
+      `suppress the transition, or move the two values closer together.\n` +
+      describeFix(worst.fixes)
   );
 }
 
