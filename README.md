@@ -23,7 +23,10 @@ time-of-day slider (or hitting **Play 24h**) calls the real
 `createThemeController`, which writes the `--tat-*` custom properties you see
 updating live — this isn't a mockup. Every frame is captured from a headless
 browser running the shipped controller (`npm run demo:gif`), so the animation
-cannot drift from what the package actually resolves.
+cannot drift from what the package actually resolves. Its background steps
+0.024 at the switch, the same as the presets — through 0.4.0 this recording
+stepped 0.770, and the front page was demonstrating the lurch the rest of the
+page had just stopped doing.
 
 ## Stats
 
@@ -429,6 +432,24 @@ between the two halves closes only when the required ratio squared is at most
 21; AA is 20.25 and fits, AAA is 49 and does not. Choose it when 7:1 matters
 more than the transition, and one of the others when it does not.
 
+### What the small step costs
+
+A step this small is bought by walking the background right up to the edge of
+legibility instead of jumping over it, so the AA presets spend a few minutes a
+day near their floor rather than comfortably above it:
+
+| Preset           | Worst ratio | Time under 5:1 |
+| ---------------- | ----------- | -------------- |
+| `dawn-to-dusk`   | 4.61:1      | 12.2 min/day   |
+| `nocturne`       | 4.53:1      | 16.1 min/day   |
+| `contrast-first` | 7.26:1      | none           |
+
+Every one of those is above AA at every second of the day — that is what
+`npm run certify` checks, and nothing ships that fails it. But "above AA" and
+"comfortable" are different claims, and the minutes either side of a switch are
+the former. If your content needs headroom rather than compliance,
+`contrast-first` buys it with the step it keeps.
+
 A full day of each, one frame per 15 minutes:
 
 |                                                                                                                                                                         |                                                                                                                                                                                     |
@@ -609,7 +630,9 @@ Runnable demo apps live under [examples/](examples), each with its own
 README covering setup:
 
 - [examples/vanilla-dom](examples/vanilla-dom) — zero-build, plain DOM +
-  `createThemeController`, the source of the recording above.
+  `createThemeController`, the source of the recording above. Its schedule is
+  hand-authored but its switch is solved, which is the combination most
+  applications want.
 - [examples/react](examples/react) — Vite + React app using
   `TimeAwareThemeProvider` / `useTimeAwareTheme` and the shipped `/react-ui`
   controls, with all ten presets switchable at runtime and live contrast for
