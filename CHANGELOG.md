@@ -5,6 +5,24 @@ All notable changes to this package are documented here.
 This project follows [Semantic Versioning](https://semver.org/). While the
 package is pre-1.0, minor versions may contain breaking changes.
 
+## 0.4.2 — 2026-08-20
+
+Documentation only. **No code changes** — `dist` is byte-identical to 0.4.1, so
+there is nothing to gain by upgrading unless you read the package page.
+
+### Documented
+
+- The playground link moved above the fold. It shipped in 0.4.1 but sat below
+  the badges, the intro, the recording and the whole stats table, which on
+  npm means most readers never reach it. It is now the first actionable thing
+  on the page.
+
+  npm renders the README from the published tarball, so a link added to the
+  repository does not appear on the package page until something is published.
+  Hence a release for a one-paragraph move.
+
+- The intro still said the package ships four palettes. It ships ten.
+
 ## 0.4.1 — 2026-08-20
 
 ### Fixed

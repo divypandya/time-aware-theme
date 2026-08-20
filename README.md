@@ -14,7 +14,11 @@ utilities for simulating the clock.
 Interpolating a palette across a day has a trap in it — when a light-on-dark
 stop moves toward a dark-on-light one, the two tokens cross and text goes
 briefly invisible. This package makes that a build error rather than something
-a user finds at dusk, and ships four palettes certified against it.
+a user finds at dusk, and ships ten palettes certified against it.
+
+**Try it: [divypandya.github.io/time-aware-theme](https://divypandya.github.io/time-aware-theme/)**
+— all ten presets, scrubbable across a day, with every declared contrast pair
+recomputed live as you drag.
 
 ![Recording of the theme cycling through a full day, driven by the real DOM controller](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/demo.gif)
 
@@ -54,12 +58,6 @@ every shipped schedule is contrast-certified via `npm run certify`
 ([scripts/certify.mjs](scripts/certify.mjs)).
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
-
-## Playground
-
-**[divypandya.github.io/time-aware-theme](https://divypandya.github.io/time-aware-theme/)**
-— all ten presets, scrubbable across a day, with every declared contrast pair
-computed live as you drag. Source in [playground/](playground).
 
 ## Installation
 
@@ -645,6 +643,9 @@ README covering setup:
   every declared pair read from `/inspect`. Consumes the package the same way
   a real installer would (`file:../..` dependency, not a relative `src`
   import).
+- [playground/](playground) — the source of the
+  [live site](https://divypandya.github.io/time-aware-theme/). Deployed to
+  GitHub Pages on every push to `main`.
 
 ## Entry points
 
