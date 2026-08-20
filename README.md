@@ -55,6 +55,12 @@ every shipped schedule is contrast-certified via `npm run certify`
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
+## Playground
+
+**[divypandya.github.io/time-aware-theme](https://divypandya.github.io/time-aware-theme/)**
+— all ten presets, scrubbable across a day, with every declared contrast pair
+computed live as you drag. Source in [playground/](playground).
+
 ## Installation
 
 ```sh

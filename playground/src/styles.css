@@ -1,0 +1,548 @@
+:root {
+  color-scheme: light dark;
+  --edge: color-mix(in oklch, var(--tat-foreground) 18%, transparent);
+  --edge-strong: color-mix(in oklch, var(--tat-foreground) 32%, transparent);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--tat-background);
+  color: var(--tat-foreground);
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  line-height: 1.55;
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease;
+}
+
+/*
+  Without this the browser fades between two clean values at the switch and
+  paints its way through the crossing at about 1:1. The controller sets this
+  attribute for the single frame in which the change is instant.
+*/
+[data-theme-flip] * {
+  transition: none !important;
+}
+
+.app {
+  width: min(96vw, 1180px);
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.muted {
+  opacity: 0.62;
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.identity h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.identity p {
+  margin: 0.2rem 0 0;
+  max-width: 56ch;
+  font-size: 0.9rem;
+}
+
+.links {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.links a {
+  color: inherit;
+  text-decoration-color: var(--edge-strong);
+  text-underline-offset: 3px;
+}
+
+/* ---------- gallery ---------- */
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 0.6rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.6rem;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
+  background: var(--tat-surface);
+  color: var(--tat-surfaceForeground);
+}
+
+.card[aria-pressed='true'] {
+  border-color: var(--tat-accent);
+  box-shadow: 0 0 0 1px var(--tat-accent) inset;
+}
+
+/* A miniature page rather than three squares: same idea as the showcase. */
+.preview {
+  display: block;
+  position: relative;
+  height: 52px;
+  border-radius: 7px;
+  border: 1px solid var(--edge);
+  overflow: hidden;
+}
+
+.preview-bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 13px;
+}
+
+.preview-text {
+  position: absolute;
+  left: 8px;
+  top: 24px;
+  width: 54%;
+  height: 5px;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+
+.preview-accent {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 26px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+.card-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.card-note {
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+/* ---------- controls ---------- */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid var(--edge);
+  background: var(--tat-surface);
+  color: var(--tat-surfaceForeground);
+}
+
+.clockline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.clock {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.phase {
+  text-transform: capitalize;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.clockline .muted {
+  font-size: 0.78rem;
+}
+
+.scrub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.scrub > label {
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.scrub > input[type='range'] {
+  width: 100%;
+  accent-color: var(--tat-accent);
+  margin: 0;
+}
+
+.scrub[data-disabled] {
+  opacity: 0.45;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.modes {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ---------- shared controls ---------- */
+
+.btn,
+.modes button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--edge-strong);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.btn-accent,
+.modes button[aria-pressed='true'] {
+  background: var(--tat-accent);
+  color: var(--tat-accentForeground);
+  border-color: var(--tat-accent);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.badge {
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--tat-accent);
+  color: var(--tat-accentForeground);
+}
+
+.badge-warn {
+  background: transparent;
+  border: 1px solid var(--edge-strong);
+  color: inherit;
+}
+
+/* ---------- stage ---------- */
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
+  background: var(--tat-surface);
+  color: var(--tat-surfaceForeground);
+}
+
+.nav-brand {
+  font-weight: 700;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.9rem;
+  margin-right: auto;
+  font-size: 0.85rem;
+}
+
+.nav-link {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.7;
+}
+
+.nav-link.is-current {
+  opacity: 1;
+  text-decoration: underline;
+  text-decoration-color: var(--tat-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+.panel {
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
+  background: var(--tat-surface);
+  color: var(--tat-surfaceForeground);
+}
+
+.panel h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.panel p {
+  margin: 0 0 0.9rem;
+  font-size: 0.9rem;
+  max-width: 62ch;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+
+.chip {
+  font-size: 0.72rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--edge-strong);
+}
+
+.chip-accent {
+  background: var(--tat-accent);
+  color: var(--tat-accentForeground);
+  border-color: var(--tat-accent);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  max-width: 320px;
+}
+
+.field input {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--edge-strong);
+  background: var(--tat-background);
+  color: var(--tat-foreground);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+caption {
+  text-align: left;
+  font-size: 0.75rem;
+  padding-bottom: 0.4rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.3rem;
+  border-bottom: 1px solid var(--edge);
+  font-weight: 400;
+}
+
+thead th {
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+tbody th {
+  font-weight: 600;
+}
+
+pre {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--edge);
+  background: var(--tat-background);
+  color: var(--tat-foreground);
+  overflow-x: auto;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* ---------- inspector ---------- */
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
+  background: var(--tat-surface);
+  color: var(--tat-surfaceForeground);
+  position: sticky;
+  top: 1rem;
+}
+
+.inspector h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ratios th {
+  font-weight: 400;
+  font-size: 0.78rem;
+}
+
+.ratios td {
+  text-align: right;
+  font-size: 0.78rem;
+}
+
+.ratios .need {
+  opacity: 0.5;
+}
+
+.ratios td:last-child {
+  width: 2.5rem;
+  font-weight: 700;
+  color: color-mix(in oklch, var(--tat-foreground) 60%, red);
+}
+
+.ratios td[data-pass] {
+  color: inherit;
+  opacity: 0.55;
+  font-weight: 400;
+}
+
+.tokens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.token {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0.28rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.token:hover {
+  border-color: var(--edge);
+}
+
+.dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1px solid var(--edge-strong);
+  flex: none;
+}
+
+.token-key {
+  flex: none;
+  width: 8.5rem;
+}
+
+.token-value {
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.install {
+  font-size: 0.72rem;
+  margin-bottom: 0.4rem;
+}
+
+.foot {
+  font-size: 0.78rem;
+  max-width: 72ch;
+  line-height: 1.6;
+}

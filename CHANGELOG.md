@@ -5,6 +5,48 @@ All notable changes to this package are documented here.
 This project follows [Semantic Versioning](https://semver.org/). While the
 package is pre-1.0, minor versions may contain breaking changes.
 
+## 0.4.1 — 2026-08-20
+
+### Fixed
+
+- **A disposed controller no longer throws at whoever calls it next.**
+  `setMode`, `setPreviewMinute` and `clearPreview` are now no-ops once
+  `dispose()` has run, rather than raising "Theme controller has been
+  disposed".
+
+  This was a real crash, not a tidiness point. An animation loop holding
+  `setPreviewMinute` keeps running for a frame or two after a controller is
+  swapped out, and the throw propagated far enough to unmount an entire React
+  tree — switching theme during a play-through-the-day took the page blank.
+  StrictMode's double-invoke had already caught the same edge once, and the
+  advice then was "create the controller inside the effect", which treats the
+  symptom.
+
+  `start()` still throws. A disposed controller cannot be revived, and silently
+  doing nothing there would hide a genuine mistake rather than a teardown race.
+
+  If you were relying on the throw to detect use-after-dispose, the snapshot is
+  unchanged and `getSnapshot()` still works, so compare that instead.
+
+### Added
+
+- **A live playground**, at
+  [divypandya.github.io/time-aware-theme](https://divypandya.github.io/time-aware-theme/):
+  all ten presets, scrubbable across a day, with every declared contrast pair
+  computed live. Swatches tell you what the colours are; they do not tell you
+  whether a table is comfortable to read at 4am, so it themes a small real
+  interface instead of a palette.
+
+### Notes
+
+The examples had `--tat-accent-foreground` and `--tat-surface-foreground` in
+their stylesheets. The controller writes `--tat-accentForeground` and
+`--tat-surfaceForeground` — token keys are used verbatim, not kebab-cased — so
+those declarations resolved to nothing and silently inherited the page
+foreground. On an accent-filled button in light mode that meant near-black text
+on a mid-dark fill. Fixed in all three example stylesheets; the shipped package
+was never affected, since it emits the names rather than consuming them.
+
 ## 0.4.0 — 2026-08-20
 
 **Preset colours changed in every shipped preset.** That contradicts the rule

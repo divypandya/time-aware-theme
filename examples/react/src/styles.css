@@ -106,7 +106,7 @@ body {
   border-radius: 12px;
   border: 1px solid color-mix(in oklch, var(--tat-foreground) 25%, transparent);
   background: var(--tat-surface);
-  color: var(--tat-surface-foreground);
+  color: var(--tat-surfaceForeground);
 }
 
 .preset[aria-pressed='true'] {
@@ -142,7 +142,7 @@ body {
   border: 1px solid color-mix(in oklch, var(--tat-foreground) 20%, transparent);
   padding: 1rem 1.1rem;
   background: var(--tat-surface);
-  color: var(--tat-surface-foreground);
+  color: var(--tat-surfaceForeground);
 }
 
 .certification h2 {
@@ -161,7 +161,7 @@ body {
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
   background: var(--tat-accent);
-  color: var(--tat-accent-foreground);
+  color: var(--tat-accentForeground);
   letter-spacing: 0.04em;
 }
 
@@ -222,7 +222,7 @@ body {
 
 .play[aria-pressed='true'] {
   background: var(--tat-accent);
-  color: var(--tat-accent-foreground);
+  color: var(--tat-accentForeground);
   border-color: var(--tat-accent);
 }
 
@@ -243,7 +243,7 @@ button[disabled] {
 
 .modes button[aria-pressed='true'] {
   background: var(--tat-accent);
-  color: var(--tat-accent-foreground);
+  color: var(--tat-accentForeground);
 }
 
 .footnote {

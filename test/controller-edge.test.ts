@@ -142,7 +142,12 @@ describe('lifecycle guards', () => {
     }).not.toThrow();
   });
 
-  it('refuses to be used after disposal', () => {
+  it('refuses to restart after disposal, but tolerates being called', () => {
+    // Through 0.4.0 all four of these threw. Restarting still does, because a
+    // disposed controller cannot be revived and pretending otherwise hides a
+    // real mistake. The mutators no longer do: they are reached by animation
+    // loops and effect cleanups that outlive a swap by a frame, and throwing
+    // there took a whole React tree down with it.
     const controller = make({ system, clock: clockAt(), document });
     controller.start();
     controller.dispose();
@@ -150,13 +155,13 @@ describe('lifecycle guards', () => {
     expect(() => controller.start()).toThrow(/disposed/);
     expect(() => {
       controller.setMode('dark');
-    }).toThrow(/disposed/);
+    }).not.toThrow();
     expect(() => {
       controller.setPreviewMinute(60);
-    }).toThrow(/disposed/);
+    }).not.toThrow();
     expect(() => {
       controller.clearPreview();
-    }).toThrow(/disposed/);
+    }).not.toThrow();
   });
 
   it('rejects an invalid mode', () => {
@@ -256,5 +261,28 @@ describe('subscriptions', () => {
     controller.subscribe(listener)();
     controller.setMode('dark');
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('a disposed controller', () => {
+  function disposed() {
+    const controller = createThemeController({
+      system,
+      document: null,
+      window: null
+    });
+    controller.start();
+    controller.dispose();
+    return controller;
+  }
+
+  it('does nothing rather than something, when told to', () => {
+    // Inert has to mean inert: a no-op that still mutated state would be worse
+    // than the throw it replaced.
+    const controller = disposed();
+    const before = controller.getSnapshot();
+    controller.setMode('dark');
+    controller.setPreviewMinute(500);
+    expect(controller.getSnapshot()).toEqual(before);
   });
 });

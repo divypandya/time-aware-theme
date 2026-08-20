@@ -162,6 +162,19 @@ export function createThemeController<TPhase extends string = string>(
   >();
   const detachListeners: (() => void)[] = [];
 
+  /**
+   * Restarting a disposed controller is a mistake, and still throws.
+   *
+   * The three mutators used to throw as well, and it made a disposed
+   * controller a live grenade rather than an inert object. React is the common
+   * case: an animation loop holding `setPreviewMinute` keeps running for a
+   * frame or two after a controller is swapped out, and the throw unmounted
+   * the whole tree - a playground switching theme mid-playback went blank.
+   * StrictMode's double-invoke had already caught us once for the same reason.
+   * Those three are now no-ops after disposal; this one is not, because
+   * silently doing nothing here would hide a real mistake rather than a
+   * teardown race.
+   */
   function start(): ThemeControllerSnapshot<TPhase> {
     if (disposed) {
       throw new Error('Theme controller has been disposed.');
@@ -207,7 +220,9 @@ export function createThemeController<TPhase extends string = string>(
   }
 
   function setMode(nextMode: ThemeMode): void {
-    assertNotDisposed();
+    if (disposed) {
+      return;
+    }
     assertValidMode(nextMode);
 
     mode = nextMode;
@@ -226,8 +241,7 @@ export function createThemeController<TPhase extends string = string>(
   }
 
   function setPreviewMinute(minute: number | null): void {
-    assertNotDisposed();
-    if (mode !== 'time-aware') {
+    if (disposed || mode !== 'time-aware') {
       return;
     }
 
@@ -236,8 +250,7 @@ export function createThemeController<TPhase extends string = string>(
   }
 
   function clearPreview(): void {
-    assertNotDisposed();
-    if (previewMinute === null) {
+    if (disposed || previewMinute === null) {
       return;
     }
     previewMinute = null;
@@ -519,12 +532,6 @@ export function createThemeController<TPhase extends string = string>(
     while (detachListeners.length > 0) {
       const detach = detachListeners.pop();
       detach?.();
-    }
-  }
-
-  function assertNotDisposed(): void {
-    if (disposed) {
-      throw new Error('Theme controller has been disposed.');
     }
   }
 
