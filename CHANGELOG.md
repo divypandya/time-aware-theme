@@ -5,6 +5,121 @@ All notable changes to this package are documented here.
 This project follows [Semantic Versioning](https://semver.org/). While the
 package is pre-1.0, minor versions may contain breaking changes.
 
+## 0.4.0 — 2026-08-20
+
+**Preset colours changed in every shipped preset.** That contradicts the rule
+this README has carried since 0.1 — that preset values are public API and new
+arcs ship under new names — and it is deliberate. 0.3.0's presets stepped half
+the background's entire daily range at the switch, and protecting the rule
+would have meant leaving that in. Pin an exact version if you depend on
+specific values. The rule stands again from here.
+
+### The finding
+
+0.3.0 shipped on the claim that a light-to-dark transition cannot be gradual.
+That is still true of the _text_. It is not true of the page, and the note in
+0.3.0 pointing at the fix had the direction backwards.
+
+The forbidden band the background has to cross is
+
+```
+gap = t * (Y_darkText + 0.05) - (Y_lightText + 0.05) / t
+```
+
+which shrinks as the two text colours move **apart**, not together. Solving
+each foreground for the nearest lightness reaching 9:1 had put them at L=0.395
+and L=0.755 — comfortably mid-range, and the worst possible place. Pinning them
+near black and near white closes the band almost entirely, and closes it
+completely once `t² ≤ 21`:
+
+| Level    | t²    | Continuous glide possible |
+| -------- | ----- | ------------------------- |
+| AA-large | 9     | yes, with room            |
+| AA       | 20.25 | yes, just                 |
+| AAA      | 49    | **no, ever**              |
+
+So `contrast-first` keeps a visible step for as long as it is AAA. That is now
+a property of the ratio rather than an observation about a palette.
+
+### Changed
+
+- **Every preset re-tuned.** Text sits near the ends of the lightness range;
+  accent lightness is solved rather than authored; the switch is where the
+  solver puts it. Background step at the switch:
+
+  | Preset           | 0.3.0 | 0.4.0         |
+  | ---------------- | ----- | ------------- |
+  | `dawn-to-dusk`   | 0.412 | 0.032 – 0.038 |
+  | `tidal`          | 0.456 | 0.032         |
+  | `paper`          | 0.435 | 0.026 – 0.032 |
+  | `contrast-first` | 0.795 | 0.264 – 0.265 |
+
+  The background travels about 0.84 across a day, so the AA presets now step
+  under 4% of their own range — the page glides through a grey dawn instead of
+  cutting from night to morning. The text still inverts instantly and always
+  will: gliding it would carry it through mid-grey while the page is mid-grey.
+
+- **Accents keep one polarity all day.** In 0.3.0 `accentForeground` was the
+  single largest jump in every AA preset — 0.659 in lightness, larger than the
+  page itself — while the accent under it moved 0.146. A primary button
+  inverting at dusk is not something anyone asked for, and it cost more than
+  the page change did. The generator now refuses to emit a preset whose accent
+  changes polarity across phases.
+
+- **Accent lightness is solved, not authored.** Hue and chroma are the design
+  decision and are kept exactly; lightness is what contrast is spent from. An
+  accent authored at L=0.5 is the worst case for carrying text at all — white
+  reaches 4.4:1 on it and black 4.8:1, so neither clears 6:1.
+
+### Added
+
+Six presets, bringing the total to ten:
+
+| Preset     | Character                                                    |
+| ---------- | ------------------------------------------------------------ |
+| `nocturne` | Eye-comforting — warm dim night, midday short of paper white |
+| `ember`    | Deep amber throughout; lamplight rather than daylight        |
+| `forest`   | Muted green and moss, low chroma                             |
+| `meridian` | Neutral and quiet; hue barely moves, only the light does     |
+| `blossom`  | Soft rose and plum; lightest by day, tinted at night         |
+| `slate`    | Cool blue-grey, restrained accent, for dense interfaces      |
+
+`nocturne` is the one to reach for in a dark room: blue light is carried by hue
+rather than by the lightness contrast is spent from, so a warm night costs
+nothing in legibility. Its daytime ceiling of 0.93 instead of 0.985 is the real
+concession, and it buys the smallest step of any preset — 0.024.
+
+### Also
+
+- **`TimePreviewSlider` accepts a controlled `minute` / `onMinuteChange`.** It
+  tracked its own minute outright, which is fine until something else moves
+  time too - the React example's play-through-the-day button being the obvious
+  case. Driving the theme worked; moving the thumb did not, so the control
+  showed one time while the page showed another.
+
+- **The React example was rebuilt.** It had become the vanilla example with
+  JSX around it, demonstrating nothing about the React entry points. It now
+  uses the shipped `/react-ui` controls, switches between all ten presets at
+  runtime, and shows live contrast for every declared pair from `/inspect` -
+  so the package's central claim is checkable by dragging a slider rather than
+  asserted in prose.
+
+  Building it surfaced one thing worth knowing: `dispose()` is terminal, so a
+  controller created in `useMemo` and disposed by StrictMode's second pass
+  cannot be restarted, and the app dies with "Theme controller has been
+  disposed". Create it inside the effect that owns it.
+
+### Notes
+
+Two palettes had to move for reasons that are worth recording, because both
+are properties of sRGB rather than taste. `tidal`'s night accents were cyan,
+and dark saturated cyan does not exist — fitting them for white text pushed 24
+interpolated samples out of gamut, so its accent arc now sits in the blues.
+`forest` leans toward teal as it darkens for the same reason.
+
+All ten presets are certified per second — 86,400 samples each, every declared
+pair — and the rendered-path check runs over all of them.
+
 ## 0.3.0 — 2026-08-20
 
 Driven by a second round of integration feedback, and by one larger complaint:

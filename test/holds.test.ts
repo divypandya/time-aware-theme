@@ -74,7 +74,7 @@ describe('hold windows', () => {
   });
 
   it('keeps the page itself gliding through the switch', () => {
-    // The point of 0.3.5. The text still flips - it has to, since gliding it
+    // The point of 0.4.0. The text still flips - it has to, since gliding it
     // would pass through mid-grey on a mid-grey page - but the background now
     // crosses continuously instead of lurching half its daily range.
     for (const preset of shipped) {

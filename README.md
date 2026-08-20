@@ -379,7 +379,7 @@ controller.getSnapshot().phase;
 
 ## Presets
 
-Four ready-made schedules, each certified per second of the day in CI. Import
+Ten ready-made schedules, each certified per second of the day in CI. Import
 one granularly so you never bundle the others:
 
 ```ts
@@ -388,32 +388,73 @@ import dawnToDusk from '@divypandya/time-aware-theme/presets/dawn-to-dusk';
 const controller = createThemeController({ system: dawnToDusk, document });
 ```
 
-| Preset           | Level   | Character                                             |
-| ---------------- | ------- | ----------------------------------------------------- |
-| `dawn-to-dusk`   | AA      | Warm arc — indigo night, amber sunrise, ember dusk    |
-| `tidal`          | AA      | Cool arc — cyan through slate, no warm hues           |
-| `contrast-first` | **AAA** | 7:1 everywhere; time expressed via hue, not lightness |
-| `paper`          | AA      | Near-achromatic surfaces, one chromatic accent        |
+| Preset           | Level   | Character                                                    |
+| ---------------- | ------- | ------------------------------------------------------------ |
+| `dawn-to-dusk`   | AA      | Warm arc — indigo night, amber sunrise, ember dusk           |
+| `tidal`          | AA      | Cool arc — cyan through slate, no warm hues                  |
+| `paper`          | AA      | Near-achromatic surfaces, one chromatic accent               |
+| `contrast-first` | **AAA** | 7:1 everywhere; time expressed via hue, not lightness        |
+| `nocturne`       | AA      | Eye-comforting — warm dim night, midday short of paper white |
+| `ember`          | AA      | Deep amber throughout; lamplight rather than daylight        |
+| `forest`         | AA      | Muted green and moss, low chroma                             |
+| `meridian`       | AA      | Neutral and quiet; hue barely moves, only the light does     |
+| `blossom`        | AA      | Soft rose and plum; lightest by day, tinted at night         |
+| `slate`          | AA      | Cool blue-grey, restrained accent, for dense interfaces      |
 
 Each ships `background`, `foreground`, `surface`, `surfaceForeground`, `accent`
 and `accentForeground`, with all three pairs declared as roles.
 
+### How much they step
+
+Every one of these has to change polarity once in the morning and once in the
+evening — that is what a light/dark day _is_, and the readable region has two
+disconnected halves. What varies is how much the page lurches when it happens:
+
+| Preset                                 | Background step at the switch |
+| -------------------------------------- | ----------------------------- |
+| `nocturne`                             | 0.024                         |
+| `paper`, `forest`, `meridian`, `slate` | 0.026 – 0.032                 |
+| `tidal`, `blossom`                     | 0.032                         |
+| `ember`                                | 0.031 – 0.036                 |
+| `dawn-to-dusk`                         | 0.032 – 0.038                 |
+| `contrast-first`                       | **0.264 – 0.265**             |
+
+For scale, the background travels about 0.84 in lightness across a day, so a
+0.03 step is under 4% of that — the page glides through a grey dawn rather than
+cutting from night to morning. The text still inverts instantly, and always
+will: gliding it would take it through mid-grey while the page is mid-grey.
+
+`contrast-first` is an order of magnitude worse and cannot be fixed. The gap
+between the two halves closes only when the required ratio squared is at most
+21; AA is 20.25 and fits, AAA is 49 and does not. Choose it when 7:1 matters
+more than the transition, and one of the others when it does not.
+
 A full day of each, one frame per 15 minutes:
 
-|                                                                                                                                                                                     |                                                                                                                                                           |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **dawn-to-dusk** — warm arc<br>![dawn-to-dusk cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-dawn-to-dusk.gif)             | **tidal** — cool arc<br>![tidal cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-tidal.gif)        |
-| **contrast-first** — AAA everywhere<br>![contrast-first cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-contrast-first.gif) | **paper** — near-achromatic<br>![paper cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-paper.gif) |
+|                                                                                                                                                                         |                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **dawn-to-dusk** — warm arc<br>![dawn-to-dusk cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-dawn-to-dusk.gif) | **tidal** — cool arc<br>![tidal cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-tidal.gif)                                  |
+| **paper** — near-achromatic<br>![paper cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-paper.gif)               | **contrast-first** — AAA everywhere<br>![contrast-first cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-contrast-first.gif) |
+| **nocturne** — eye-comforting<br>![nocturne cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-nocturne.gif)       | **ember** — lamplight<br>![ember cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-ember.gif)                                 |
+| **forest** — muted green<br>![forest cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-forest.gif)                | **meridian** — neutral<br>![meridian cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-meridian.gif)                          |
+| **blossom** — rose and plum<br>![blossom cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-blossom.gif)           | **slate** — cool blue-grey<br>![slate cycling through a day](https://raw.githubusercontent.com/divypandya/time-aware-theme/main/assets/preset-slate.gif)                            |
 
 Note how `contrast-first` barely changes lightness across the day — it carries
 time of day in hue and chroma instead, because lightness is the budget contrast
 spends.
 
-Preset colours are public API: changing a value is a breaking change, and new
-arcs ship under new names rather than as revisions. Backgrounds and accents are
-authored by hand; every other token is solved for a contrast target and clamped
-into the sRGB gamut by [scripts/generate-presets.mjs](scripts/generate-presets.mjs),
-which refuses to emit anything it cannot certify.
+Preset colours are public API. Through 0.3.0 the rule here was that changing a
+value is breaking and new arcs ship under new names; 0.4.0 broke that rule
+deliberately and re-tuned all four original presets, because they shipped with
+a step half the size of the background's entire daily range and leaving that in
+place to protect the rule would have been the wrong trade. Pin an exact version
+if you depend on specific values. The rule stands again from here.
+
+Backgrounds and accent hues are authored by hand; every other value — text
+lightness, surface lightness, accent lightness, and where the theme switches —
+is solved and clamped into the sRGB gamut by
+[scripts/generate-presets.mjs](scripts/generate-presets.mjs), which refuses to
+emit anything it cannot certify.
 
 ## Solving and extending
 
@@ -570,9 +611,11 @@ README covering setup:
 - [examples/vanilla-dom](examples/vanilla-dom) — zero-build, plain DOM +
   `createThemeController`, the source of the recording above.
 - [examples/react](examples/react) — Vite + React app using
-  `TimeAwareThemeProvider` / `useTimeAwareTheme`, consuming the package the
-  same way a real installer would (`file:../..` dependency, not a relative
-  `src` import).
+  `TimeAwareThemeProvider` / `useTimeAwareTheme` and the shipped `/react-ui`
+  controls, with all ten presets switchable at runtime and live contrast for
+  every declared pair read from `/inspect`. Consumes the package the same way
+  a real installer would (`file:../..` dependency, not a relative `src`
+  import).
 
 ## Entry points
 
@@ -584,7 +627,8 @@ README covering setup:
 - `@divypandya/time-aware-theme/inspect`
 - `@divypandya/time-aware-theme/solve` (build-time)
 - `@divypandya/time-aware-theme/tailwind`
-- `@divypandya/time-aware-theme/presets/{dawn-to-dusk,tidal,contrast-first,paper}`
+- `@divypandya/time-aware-theme/presets/{dawn-to-dusk,tidal,contrast-first,paper,`
+  `nocturne,ember,forest,meridian,blossom,slate}`
 
 ## Public surface
 
@@ -597,8 +641,9 @@ re-exported from `/dom`)
 
 **`/react`** — `TimeAwareThemeProvider`, `useTimeAwareTheme`
 
-**`/react-ui`** — `ThemeSelector`, `ThemeModeSelect`, `TimePreviewSlider`,
-`PhaseLabel`, `formatMinute`
+**`/react-ui`** — `ThemeSelector`, `ThemeModeSelect`, `TimePreviewSlider`
+(uncontrolled, or controlled via `minute` / `onMinuteChange`), `PhaseLabel`,
+`formatMinute`
 
 **`/testing`** — `createManualClock`, `sampleSchedule`, `assertContrast`,
 `findContrastViolations`, `assertRenderedPath`, `findRenderedPathViolations`,
@@ -615,7 +660,8 @@ re-exported from `/dom`)
 `transitionCss`
 
 **`/presets/*`** — each preset is a default export plus a named export
-(`dawnToDusk`, `tidal`, `contrastFirst`, `paper`)
+(`dawnToDusk`, `tidal`, `contrastFirst`, `paper`, `nocturne`, `ember`,
+`forest`, `meridian`, `blossom`, `slate`)
 
 ## Runtime notes
 

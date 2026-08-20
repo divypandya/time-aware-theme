@@ -74,7 +74,7 @@ function solveLightness(against, spec, target) {
  * Text sits near the end of the lightness range, not at the nearest value that
  * reaches a target.
  *
- * This is the whole reason 0.3.5's presets glide where 0.3.0's stepped. The
+ * This is the whole reason 0.4.0's presets glide where 0.3.0's stepped. The
  * background has to cross from "dark enough for light text" to "light enough
  * for dark text", and the forbidden band between those is
  *

@@ -151,7 +151,18 @@ try {
         slider.dispatchEvent(new Event('input', { bubbles: true }));
       }
     },
-    ...['dawn-to-dusk', 'tidal', 'contrast-first', 'paper'].map((id) => ({
+    ...[
+      'dawn-to-dusk',
+      'tidal',
+      'contrast-first',
+      'paper',
+      'nocturne',
+      'ember',
+      'forest',
+      'meridian',
+      'blossom',
+      'slate'
+    ].map((id) => ({
       label: `preset-${id}`,
       url: `${base}/scripts/preset-demo.html?preset=${id}`,
       out: join(OUT, `preset-${id}.gif`),
