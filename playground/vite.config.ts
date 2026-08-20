@@ -10,6 +10,13 @@ export default defineConfig(({ command }) => ({
     command === 'build'
       ? (process.env.PLAYGROUND_BASE ?? '/time-aware-theme/')
       : '/',
+  // The package is linked with file:, so its symlinked directory resolves
+  // 'react' from the repo root while the app resolves its own copy. Two React
+  // instances means hooks run against a dispatcher that is not the renderer's,
+  // and the page dies with "Cannot read properties of null (reading
+  // 'useState')" - in the production build only, which is how it reached a
+  // deployed site before being noticed.
+  resolve: { dedupe: ['react', 'react-dom'] },
   plugins: [react()],
   build: { outDir: 'dist', emptyOutDir: true }
 }));
