@@ -3,13 +3,20 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      // Lets the certification suite import examples/react's theme system,
-      // which imports the package by name the way a real installer would.
-      '@divypandya/time-aware-theme': fileURLToPath(
-        new URL('./src/index.ts', import.meta.url)
-      )
-    }
+    alias: [
+      // Lets the certification suite import examples/react's own module
+      // graph, which imports the package by name the way a real installer
+      // would. The subpath rule has to come first: a bare-specifier alias
+      // does not cover '/presets/tidal' or '/react-ui'.
+      {
+        find: /^@divypandya\/time-aware-theme\/(.*)$/,
+        replacement: fileURLToPath(new URL('./src/', import.meta.url)) + '$1'
+      },
+      {
+        find: '@divypandya/time-aware-theme',
+        replacement: fileURLToPath(new URL('./src/index.ts', import.meta.url))
+      }
+    ]
   },
   test: {
     environment: 'jsdom',
@@ -35,7 +42,7 @@ export default defineConfig({
         // Branches were briefly dropped to 86 mid-0.3 while the fix-hint
         // solver landed uncovered; the tests for it put this back above where
         // it started, so the ratchet is restored rather than left slack.
-        'src/testing.ts': { statements: 93, branches: 90, functions: 84 },
+        'src/testing.ts': { statements: 94, branches: 91, functions: 84 },
         'src/inspect.ts': { statements: 94, branches: 80, functions: 100 },
         'src/solve.ts': { statements: 100, branches: 89, functions: 100 },
         'src/tailwind.ts': { statements: 94, branches: 85, functions: 100 },

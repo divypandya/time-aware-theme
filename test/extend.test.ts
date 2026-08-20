@@ -6,9 +6,11 @@ import { contrastFirst } from '../src/presets/contrast-first.js';
 import { dawnToDusk } from '../src/presets/dawn-to-dusk.js';
 import { extendPreset } from '../src/solve.js';
 import {
+  GAMUT_CHROMA_SAFETY,
   PER_SECOND,
   findContrastViolations,
-  findRenderedPathViolations
+  findRenderedPathViolations,
+  maxChromaInGamut
 } from '../src/testing.js';
 
 /** A brand dark enough to hold light text at every hour of the day. */
@@ -98,8 +100,15 @@ describe('extendPreset', () => {
       findContrastViolations(extended, { stepMinutes: PER_SECOND })
     ).toEqual([]);
     for (const stop of extended.stops) {
-      expect(must(stop.tokens.brand, 'brand').h).toBe(265);
-      expect(must(stop.tokens.brand, 'brand').c).toBeCloseTo(0.14, 2);
+      const brand = must(stop.tokens.brand, 'brand');
+      // Hue is the identity and is kept exactly. Chroma is kept as far as the
+      // gamut allows and no further: solving lightness moves the colour, and
+      // 0.14 chroma at hue 265 does not exist at every lightness. Asserting
+      // the requested value would be asserting that the browser renders a
+      // colour it cannot.
+      expect(brand.h).toBe(265);
+      const ceiling = maxChromaInGamut(brand.l, 265) * GAMUT_CHROMA_SAFETY;
+      expect(brand.c).toBeCloseTo(Math.min(0.14, ceiling), 4);
     }
     // It tracks the page rather than a fixed lightness: darker than the
     // background on the light half, lighter on the dark half. Absolute
@@ -176,11 +185,15 @@ describe('extendPreset', () => {
     // brand colour to reach a ratio is worse than saying it does not reach one.
     let message = '';
     try {
+      // Stays darker than the page at every hour, so it never swaps sides -
+      // the crossing validator has nothing to say and extendPreset's own
+      // verification is what reports. Against a 0.13-lightness night sky a
+      // near-black brand is simply not visible.
       extendPreset(dawnToDusk, {
         tokens: {
           brand: {
-            light: 'oklch(0.5 0.16 265 / 1)',
-            dark: 'oklch(0.78 0.12 265 / 1)'
+            light: 'oklch(0.05 0.01 265 / 1)',
+            dark: 'oklch(0.05 0.01 265 / 1)'
           }
         },
         roles: { pairs: [{ bg: 'background', fg: 'brand', min: 'non-text' }] }

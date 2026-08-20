@@ -6,8 +6,8 @@
 // by hand. Certified per second by scripts/certify.mjs.
 //
 // Switches:
-//   05:32  dawn -> sunrise, widest step 0.435 in lightness
-//   20:22  dusk -> night, widest step 0.421 in lightness
+//   05:55  dawn -> sunrise, widest step 0.033 in lightness
+//   20:55  dusk -> night, widest step 0.026 in lightness
 import { defineThemeSystem } from '../core.js';
 
 /**
@@ -18,19 +18,19 @@ export const paper = defineThemeSystem({
   staticThemes: {
     light: {
       background: 'oklch(0.99 0.002 95 / 1)',
-      foreground: 'oklch(0.3984 0.015 95 / 1)',
+      foreground: 'oklch(0.145 0.015 95 / 1)',
       surface: 'oklch(0.955 0.002 95 / 1)',
-      surfaceForeground: 'oklch(0.3737 0.015 95 / 1)',
-      accent: 'oklch(0.5 0.13 260 / 1)',
-      accentForeground: 'oklch(0.9954 0.0019 260 / 1)'
+      surfaceForeground: 'oklch(0.145 0.015 95 / 1)',
+      accent: 'oklch(0.4931 0.13 260 / 1)',
+      accentForeground: 'oklch(0.985 0.0061 260 / 1)'
     },
     dark: {
       background: 'oklch(0.15 0.004 260 / 1)',
-      foreground: 'oklch(0.755 0.015 260 / 1)',
+      foreground: 'oklch(0.985 0.0061 260 / 1)',
       surface: 'oklch(0.2 0.004 260 / 1)',
-      surfaceForeground: 'oklch(0.7786 0.015 260 / 1)',
-      accent: 'oklch(0.78 0.1 250 / 1)',
-      accentForeground: 'oklch(0.3357 0.01 250 / 1)'
+      surfaceForeground: 'oklch(0.985 0.0061 260 / 1)',
+      accent: 'oklch(0.4897 0.1193 250 / 1)',
+      accentForeground: 'oklch(0.985 0.0063 250 / 1)'
     }
   },
   roles: {
@@ -47,11 +47,11 @@ export const paper = defineThemeSystem({
       phase: 'night',
       tokens: {
         background: 'oklch(0.15 0.004 260 / 1)',
-        foreground: 'oklch(0.755 0.015 260 / 1)',
+        foreground: 'oklch(0.985 0.0061 260 / 1)',
         surface: 'oklch(0.2 0.004 260 / 1)',
-        surfaceForeground: 'oklch(0.7786 0.015 260 / 1)',
-        accent: 'oklch(0.78 0.1 250 / 1)',
-        accentForeground: 'oklch(0.3357 0.01 250 / 1)'
+        surfaceForeground: 'oklch(0.985 0.0061 260 / 1)',
+        accent: 'oklch(0.4897 0.1193 250 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 250 / 1)'
       }
     },
     {
@@ -60,38 +60,38 @@ export const paper = defineThemeSystem({
       phase: 'dawn',
       tokens: {
         background: 'oklch(0.19 0.008 270 / 1)',
-        foreground: 'oklch(0.7731 0.015 270 / 1)',
+        foreground: 'oklch(0.985 0.006 270 / 1)',
         surface: 'oklch(0.24 0.008 270 / 1)',
-        surfaceForeground: 'oklch(0.8066 0.015 270 / 1)',
-        accent: 'oklch(0.79 0.0908 265 / 1)',
-        accentForeground: 'oklch(0.3422 0.01 265 / 1)'
+        surfaceForeground: 'oklch(0.985 0.006 270 / 1)',
+        accent: 'oklch(0.4946 0.13 265 / 1)',
+        accentForeground: 'oklch(0.985 0.006 265 / 1)'
       }
     },
     {
-      minute: 332,
+      minute: 355,
       appearance: 'dark',
       phase: 'dawn',
       jumpAfter: true,
       tokens: {
-        background: 'oklch(0.398 0.00747 312.66667 / 1)',
-        foreground: 'oklch(0.7731 0.015 270 / 1)',
-        surface: 'oklch(0.42533 0.00747 312.66667 / 1)',
-        surfaceForeground: 'oklch(0.8066 0.015 270 / 1)',
-        accent: 'oklch(0.718 0.10125 262.33333 / 1)',
-        accentForeground: 'oklch(0.3422 0.01 265 / 1)'
+        background: 'oklch(0.5475 0.00708 343.33333 / 1)',
+        foreground: 'oklch(0.985 0.006 270 / 1)',
+        surface: 'oklch(0.55854 0.00708 343.33333 / 1)',
+        surfaceForeground: 'oklch(0.985 0.006 270 / 1)',
+        accent: 'oklch(0.49323 0.13 260.41667 / 1)',
+        accentForeground: 'oklch(0.985 0.006 265 / 1)'
       }
     },
     {
-      minute: 333,
+      minute: 356,
       appearance: 'light',
       phase: 'dawn',
       tokens: {
-        background: 'oklch(0.8335 0.00635 42 / 1)',
-        foreground: 'oklch(0.3851 0.015 70 / 1)',
-        surface: 'oklch(0.81338 0.00635 42 / 1)',
-        surfaceForeground: 'oklch(0.3596 0.015 70 / 1)',
-        accent: 'oklch(0.56725 0.12314 256.75 / 1)',
-        accentForeground: 'oklch(1 0 255 / 1)'
+        background: 'oklch(0.58 0.007 350 / 1)',
+        foreground: 'oklch(0.145 0.015 70 / 1)',
+        surface: 'oklch(0.5875 0.007 350 / 1)',
+        surfaceForeground: 'oklch(0.145 0.015 70 / 1)',
+        accent: 'oklch(0.4931 0.13 260 / 1)',
+        accentForeground: 'oklch(0.985 0.0062 255 / 1)'
       }
     },
     {
@@ -100,11 +100,11 @@ export const paper = defineThemeSystem({
       phase: 'sunrise',
       tokens: {
         background: 'oklch(0.97 0.006 70 / 1)',
-        foreground: 'oklch(0.3851 0.015 70 / 1)',
+        foreground: 'oklch(0.145 0.015 70 / 1)',
         surface: 'oklch(0.935 0.006 70 / 1)',
-        surfaceForeground: 'oklch(0.3596 0.015 70 / 1)',
-        accent: 'oklch(0.52 0.13 255 / 1)',
-        accentForeground: 'oklch(1 0 255 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 70 / 1)',
+        accent: 'oklch(0.4916 0.13 255 / 1)',
+        accentForeground: 'oklch(0.985 0.0062 255 / 1)'
       }
     },
     {
@@ -113,11 +113,11 @@ export const paper = defineThemeSystem({
       phase: 'midday',
       tokens: {
         background: 'oklch(0.99 0.002 95 / 1)',
-        foreground: 'oklch(0.3984 0.015 95 / 1)',
+        foreground: 'oklch(0.145 0.015 95 / 1)',
         surface: 'oklch(0.955 0.002 95 / 1)',
-        surfaceForeground: 'oklch(0.3737 0.015 95 / 1)',
-        accent: 'oklch(0.5 0.13 260 / 1)',
-        accentForeground: 'oklch(0.9954 0.0019 260 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 95 / 1)',
+        accent: 'oklch(0.4931 0.13 260 / 1)',
+        accentForeground: 'oklch(0.985 0.0061 260 / 1)'
       }
     },
     {
@@ -126,11 +126,11 @@ export const paper = defineThemeSystem({
       phase: 'afternoon',
       tokens: {
         background: 'oklch(0.96 0.006 85 / 1)',
-        foreground: 'oklch(0.3776 0.015 85 / 1)',
+        foreground: 'oklch(0.145 0.015 85 / 1)',
         surface: 'oklch(0.925 0.006 85 / 1)',
-        surfaceForeground: 'oklch(0.3517 0.015 85 / 1)',
-        accent: 'oklch(0.51 0.13 258 / 1)',
-        accentForeground: 'oklch(1 0 258 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 85 / 1)',
+        accent: 'oklch(0.4925 0.13 258 / 1)',
+        accentForeground: 'oklch(0.985 0.0061 258 / 1)'
       }
     },
     {
@@ -139,38 +139,38 @@ export const paper = defineThemeSystem({
       phase: 'dusk',
       tokens: {
         background: 'oklch(0.94 0.01 65 / 1)',
-        foreground: 'oklch(0.3633 0.015 65 / 1)',
+        foreground: 'oklch(0.145 0.015 65 / 1)',
         surface: 'oklch(0.905 0.01 65 / 1)',
-        surfaceForeground: 'oklch(0.3362 0.015 65 / 1)',
-        accent: 'oklch(0.52 0.13 252 / 1)',
-        accentForeground: 'oklch(1 0 252 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 65 / 1)',
+        accent: 'oklch(0.4905 0.1264 252 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 252 / 1)'
       }
     },
     {
-      minute: 1222,
+      minute: 1255,
       appearance: 'light',
       phase: 'dusk',
       jumpAfter: true,
       tokens: {
-        background: 'oklch(0.79517 0.0089 34.75 / 1)',
-        foreground: 'oklch(0.3633 0.015 65 / 1)',
-        surface: 'oklch(0.77575 0.0089 34.75 / 1)',
-        surfaceForeground: 'oklch(0.3362 0.015 65 / 1)',
-        accent: 'oklch(0.56767 0.1245 251.63333 / 1)',
-        accentForeground: 'oklch(1 0 252 / 1)'
+        background: 'oklch(0.57792 0.00725 349.375 / 1)',
+        foreground: 'oklch(0.145 0.015 65 / 1)',
+        surface: 'oklch(0.58188 0.00725 349.375 / 1)',
+        surfaceForeground: 'oklch(0.145 0.015 65 / 1)',
+        accent: 'oklch(0.49013 0.12315 251.08333 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 252 / 1)'
       }
     },
     {
-      minute: 1223,
+      minute: 1256,
       appearance: 'dark',
       phase: 'dusk',
       tokens: {
-        background: 'oklch(0.37383 0.0057 306.75 / 1)',
-        foreground: 'oklch(0.755 0.015 260 / 1)',
-        surface: 'oklch(0.39975 0.0057 306.75 / 1)',
-        surfaceForeground: 'oklch(0.7786 0.015 260 / 1)',
-        accent: 'oklch(0.70633 0.1085 250.56667 / 1)',
-        accentForeground: 'oklch(0.3357 0.01 250 / 1)'
+        background: 'oklch(0.55158 0.00705 343.875 / 1)',
+        foreground: 'oklch(0.985 0.0061 260 / 1)',
+        surface: 'oklch(0.55838 0.00705 343.875 / 1)',
+        surfaceForeground: 'oklch(0.985 0.0061 260 / 1)',
+        accent: 'oklch(0.49011 0.12291 251.01667 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 250 / 1)'
       }
     },
     {
@@ -179,11 +179,11 @@ export const paper = defineThemeSystem({
       phase: 'night',
       tokens: {
         background: 'oklch(0.15 0.004 260 / 1)',
-        foreground: 'oklch(0.755 0.015 260 / 1)',
+        foreground: 'oklch(0.985 0.0061 260 / 1)',
         surface: 'oklch(0.2 0.004 260 / 1)',
-        surfaceForeground: 'oklch(0.7786 0.015 260 / 1)',
-        accent: 'oklch(0.78 0.1 250 / 1)',
-        accentForeground: 'oklch(0.3357 0.01 250 / 1)'
+        surfaceForeground: 'oklch(0.985 0.0061 260 / 1)',
+        accent: 'oklch(0.4897 0.1193 250 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 250 / 1)'
       }
     }
   ]

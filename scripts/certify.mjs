@@ -33,6 +33,12 @@ import dawnToDusk from '../dist/presets/dawn-to-dusk.js';
 import tidal from '../dist/presets/tidal.js';
 import contrastFirst from '../dist/presets/contrast-first.js';
 import paper from '../dist/presets/paper.js';
+import nocturne from '../dist/presets/nocturne.js';
+import ember from '../dist/presets/ember.js';
+import forest from '../dist/presets/forest.js';
+import meridian from '../dist/presets/meridian.js';
+import blossom from '../dist/presets/blossom.js';
+import slate from '../dist/presets/slate.js';
 
 // Every schedule this repo ships or demonstrates. The vanilla-dom demo is the
 // one recorded in the README, so a contrast failure there is one users see
@@ -45,7 +51,13 @@ const subjects = [
   { label: 'preset/dawn-to-dusk', system: dawnToDusk },
   { label: 'preset/tidal', system: tidal },
   { label: 'preset/contrast-first', system: contrastFirst },
-  { label: 'preset/paper', system: paper }
+  { label: 'preset/paper', system: paper },
+  { label: 'preset/nocturne', system: nocturne },
+  { label: 'preset/ember', system: ember },
+  { label: 'preset/forest', system: forest },
+  { label: 'preset/meridian', system: meridian },
+  { label: 'preset/blossom', system: blossom },
+  { label: 'preset/slate', system: slate }
 ];
 
 const formatMinute = (minute) =>
