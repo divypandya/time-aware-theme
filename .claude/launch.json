@@ -4,38 +4,21 @@
     {
       "name": "react-example",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev",
-        "--prefix",
-        "examples/react"
-      ],
+      "runtimeArgs": ["run", "dev", "--prefix", "examples/react"],
       "port": 5173,
       "autoPort": true
     },
     {
       "name": "vanilla-demo",
       "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "--yes",
-        "http-server",
-        ".",
-        "-p",
-        "8080",
-        "-c-1"
-      ],
+      "runtimeArgs": ["--yes", "http-server", ".", "-p", "8080", "-c-1"],
       "port": 8080,
       "autoPort": true
     },
     {
       "name": "playground",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev",
-        "--prefix",
-        "playground"
-      ],
+      "runtimeArgs": ["run", "dev", "--prefix", "playground"],
       "port": 5173,
       "autoPort": true
     }
