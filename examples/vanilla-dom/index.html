@@ -50,11 +50,17 @@
         text-align: center;
       }
 
+      /*
+        The clock reads from --tat-foreground, not --tat-accent. The accent is
+        paired with its own foreground now rather than with the page, so
+        nothing certifies it as text on this background - and text is exactly
+        what a 3.5rem clock is.
+      */
       .clock {
         font-size: 3.5rem;
         font-weight: 700;
         letter-spacing: 0.02em;
-        color: var(--tat-accent);
+        color: var(--tat-foreground);
         margin: 0;
         font-variant-numeric: tabular-nums;
       }
@@ -113,7 +119,7 @@
 
       button[aria-pressed='true'] {
         background: var(--tat-accent);
-        color: var(--tat-background);
+        color: var(--tat-accent-foreground);
       }
 
       #play-button {
