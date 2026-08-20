@@ -9,7 +9,8 @@
     // node_modules happens to be installed, which is true locally and false in
     // CI. Mirrors the resolve alias in vitest.config.ts.
     "paths": {
-      "@divypandya/time-aware-theme": ["./src/index.ts"]
+      "@divypandya/time-aware-theme": ["./src/index.ts"],
+      "@divypandya/time-aware-theme/*": ["./src/*"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
