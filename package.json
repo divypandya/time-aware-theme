@@ -1,6 +1,6 @@
 {
   "name": "@divypandya/time-aware-theme",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Time-aware theme resolver, DOM controller, React adapter, and test utilities.",
   "type": "module",
   "license": "MIT",
@@ -61,6 +61,10 @@
     "./inspect": {
       "types": "./dist/inspect.d.ts",
       "import": "./dist/inspect.js"
+    },
+    "./solve": {
+      "types": "./dist/solve.d.ts",
+      "import": "./dist/solve.js"
     },
     "./tailwind": {
       "types": "./dist/tailwind.d.ts",

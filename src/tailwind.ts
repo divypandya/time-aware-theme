@@ -103,12 +103,28 @@ export function staticFallbackCss<TPhase extends string = string>(
  * /* paste the output of tailwindCss(system) here *\/
  * ```
  */
+/**
+ * The rule that stops the browser fading through the switch.
+ *
+ * The resolver never blends across a declared change, but a transition will:
+ * given `transition: background-color .35s`, the browser animates between two
+ * clean values and paints the crossing on the way. The controller flags that
+ * single frame; this is what acts on the flag.
+ */
+export function transitionCss(
+  options: { readonly flipAttribute?: string } = {}
+): string {
+  const attribute = options.flipAttribute ?? 'data-theme-flip';
+  return `[${attribute}] * {\n  transition: none !important;\n}`;
+}
+
 export function tailwindCss<TPhase extends string = string>(
   system: ThemeSystem<TPhase>,
   options: TailwindThemeOptions = {}
 ): string {
-  return `${staticFallbackCss(system, options)}\n\n${themeInlineCss(
-    system,
-    options
-  )}`;
+  return [
+    staticFallbackCss(system, options),
+    themeInlineCss(system, options),
+    transitionCss()
+  ].join('\n\n');
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defineThemeSystem, holdThenSnap } from '../src/core.js';
 import {
+  PER_SECOND,
   assertContrast,
   contrastRatio,
   contrastThreshold,
@@ -81,6 +82,18 @@ describe('colour maths', () => {
   });
 });
 
+const ONE_STOP: Parameters<typeof defineThemeSystem>[0]['stops'] = [
+  {
+    minute: 0,
+    appearance: 'dark',
+    phase: 'night',
+    tokens: {
+      background: 'oklch(0.14 0.02 260 / 1)',
+      foreground: 'oklch(0.96 0.01 260 / 1)'
+    }
+  }
+];
+
 describe('sampleSchedule', () => {
   it('samples every integer minute by default', () => {
     const samples = sampleSchedule(
@@ -108,6 +121,23 @@ describe('sampleSchedule', () => {
     expect(samples).toHaveLength(1440);
     expect(samples[0]?.minute).toBe(0);
     expect(samples[1439]?.minute).toBe(1439);
+  });
+
+  it('rejects a non-positive step', () => {
+    expect(() => sampleSchedule(system(ONE_STOP), { stepMinutes: 0 })).toThrow(
+      /must be positive/
+    );
+    expect(() => sampleSchedule(system(ONE_STOP), { stepMinutes: -1 })).toThrow(
+      /must be positive/
+    );
+  });
+
+  it('samples between minutes when asked', () => {
+    // Declared jumps hold at any resolution, so a finer sweep is a sharper
+    // check rather than a source of false failures.
+    expect(
+      sampleSchedule(system(ONE_STOP), { stepMinutes: PER_SECOND })
+    ).toHaveLength(86_400);
   });
 
   it('honours a coarser step', () => {

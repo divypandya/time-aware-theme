@@ -21,6 +21,11 @@ const budgets = [
   { file: 'dist/react-ui.js', limit: 9216, label: 'React UI entry' },
   { file: 'dist/testing.js', limit: 8192, label: 'testing entry' },
   { file: 'dist/inspect.js', limit: 8192, label: 'inspect entry' },
+  {
+    file: 'dist/solve.js',
+    limit: 9216,
+    label: 'solve entry (build-time only)'
+  },
   { file: 'dist/tailwind.js', limit: 2048, label: 'Tailwind entry' },
   {
     file: 'dist/presets/dawn-to-dusk.js',

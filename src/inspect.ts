@@ -132,6 +132,14 @@ export function formatInspection<TPhase extends string = string>(
         : ` -> ${snapshot.nextAppearance}`)
   );
 
+  if (snapshot.holding) {
+    lines.push(
+      `  holding  values frozen until ` +
+        `${formatMinute(inspection.nextStop?.minute ?? inspection.minute)}, ` +
+        'then they change instantly (declared `jumpAfter`)'
+    );
+  }
+
   if (inspection.previousStop && inspection.nextStop) {
     lines.push(
       `  stops  ${formatMinute(inspection.previousStop.minute)} ` +
@@ -166,6 +174,24 @@ export function formatInspection<TPhase extends string = string>(
   return lines.join('\n');
 }
 
+export interface HoldWindow {
+  /** Minute the values freeze. */
+  readonly start: number;
+  /** Minute they change, instantly. */
+  readonly jumpAt: number;
+  /** Minutes held. One in a solved schedule; longer if hand-written. */
+  readonly minutes: number;
+  readonly phase: string;
+  readonly nextPhase: string;
+  /** True when the appearance flips here — a light/dark switch, not a nudge. */
+  readonly flipsAppearance: boolean;
+  /** Token moving furthest, and how far, in OKLCH lightness. */
+  readonly widestToken: string;
+  readonly widestJump: number;
+  /** Per token, how far it moves. */
+  readonly jumps: Readonly<Record<string, number>>;
+}
+
 export interface ScheduleReport {
   readonly totalMinutes: number;
   readonly failingMinutes: number;
@@ -179,6 +205,70 @@ export interface ScheduleReport {
     readonly worstRatio: number;
     readonly required: number;
   }[];
+  /**
+   * Where the schedule stops gliding and steps.
+   *
+   * Every legible light/dark theme has at least one, and it is the one moment
+   * a user actually notices, so a report that stays silent about it is hiding
+   * its most interesting minute. It is also the first thing to check when a
+   * transition "looks wrong": a switch in the wrong place, or a step far wider
+   * than the contrast maths needs, shows up here and nowhere else.
+   */
+  readonly holds: readonly HoldWindow[];
+}
+
+/**
+ * Reads hold windows off the stops rather than off a minute-by-minute sweep.
+ *
+ * A hold can be shorter than the sampling step, so sampling would miss it.
+ * The stops carry the declaration itself, which is exact at any resolution.
+ */
+function findHolds<TPhase extends string>(
+  system: ThemeSystem<TPhase>
+): readonly HoldWindow[] {
+  const stops = system.stops;
+  if (stops.length < 2) {
+    return [];
+  }
+
+  const holds: HoldWindow[] = [];
+  stops.forEach((stop, index) => {
+    if (!stop.jumpAfter) {
+      return;
+    }
+    const next = stops[(index + 1) % stops.length];
+    if (!next) {
+      return;
+    }
+    const jumps: Record<string, number> = {};
+    let widestToken = '';
+    let widestJump = 0;
+    for (const key of system.tokenKeys) {
+      const from = stop.tokens[key];
+      const to = next.tokens[key];
+      if (!from || !to) {
+        continue;
+      }
+      const distance = Math.abs(to.l - from.l);
+      jumps[key] = distance;
+      if (distance > widestJump) {
+        widestJump = distance;
+        widestToken = key;
+      }
+    }
+    holds.push({
+      start: stop.minute,
+      jumpAt: next.minute,
+      minutes: distanceForward(stop.minute, next.minute),
+      phase: stop.phase,
+      nextPhase: next.phase,
+      flipsAppearance: stop.appearance !== next.appearance,
+      widestToken,
+      widestJump,
+      jumps
+    });
+  });
+  return holds;
 }
 
 /**
@@ -242,13 +332,33 @@ export function inspectSchedule<TPhase extends string = string>(
     totalMinutes: MINUTES_PER_DAY,
     failingMinutes,
     outOfGamutMinutes,
-    windows
+    windows,
+    holds: findHolds(system)
   };
+}
+
+function formatHolds(report: ScheduleReport): readonly string[] {
+  if (report.holds.length === 0) {
+    return [];
+  }
+  const lines = [`  holds (${report.holds.length})`];
+  for (const hold of report.holds) {
+    lines.push(
+      `    ${formatMinute(hold.start)}-${formatMinute(hold.jumpAt)}  ` +
+        `${hold.phase} -> ${hold.nextPhase}  ` +
+        (hold.flipsAppearance ? 'appearance flips' : 'same appearance') +
+        `, step ${hold.widestJump.toFixed(3)} L in "${hold.widestToken}"`
+    );
+  }
+  return lines;
 }
 
 export function formatScheduleReport(report: ScheduleReport): string {
   if (report.windows.length === 0 && report.outOfGamutMinutes === 0) {
-    return `PASS  ${report.totalMinutes} minutes, no contrast or gamut problems`;
+    return [
+      `PASS  ${report.totalMinutes} minutes, no contrast or gamut problems`,
+      ...formatHolds(report)
+    ].join('\n');
   }
 
   const lines = [
@@ -265,6 +375,7 @@ export function formatScheduleReport(report: ScheduleReport): string {
         `(needs ${window.required}:1) at ${formatMinute(window.worstMinute)}`
     );
   }
+  lines.push(...formatHolds(report));
   return lines.join('\n');
 }
 

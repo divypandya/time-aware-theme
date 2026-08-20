@@ -75,3 +75,68 @@ export function meetsContrast(
 export function meetsWcagAA(left: OklchColor, right: OklchColor): boolean {
   return meetsContrast(left, right, 'AA');
 }
+
+/**
+ * Chroma is not free: how much of it fits depends on lightness and hue.
+ *
+ * sRGB in OKLCH is a lumpy solid, not a cylinder. At L=0.5 a warm hue holds
+ * roughly 0.20 chroma while a green holds about 0.10, and near white or black
+ * every hue collapses to nearly none. Authoring a dark amber accent is
+ * therefore not a matter of taste — asked for one at 0.14 chroma the answer is
+ * that it does not exist, and the browser silently clips it to something
+ * duller and slightly off-hue. Contrast maths then runs on the colour you
+ * asked for rather than the one on screen.
+ *
+ * Bisection rather than an analytic solve: the cube roots in the OKLab
+ * transform make the boundary awkward to invert, and 32 halvings settle to
+ * ~1e-10, far below anything a display can show.
+ */
+export function maxChromaInGamut(
+  lightness: number,
+  hue: number | null
+): number {
+  if (!(lightness > 0) || lightness >= 1) {
+    return 0;
+  }
+  const h = hue ?? 0;
+  let low = 0;
+  // Nothing in sRGB reaches 0.4 chroma; the most saturated blues stop near
+  // 0.32. Starting above the maximum keeps the first halving meaningful.
+  let high = 0.4;
+  for (let index = 0; index < 32; index += 1) {
+    const mid = (low + high) / 2;
+    if (isOutOfSrgbGamut({ l: lightness, c: mid, h, alpha: 1 })) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+  }
+  return low;
+}
+
+/**
+ * How much of the maximum to actually use.
+ *
+ * Two colours can each sit inside the gamut while the straight line between
+ * them leaves it — the solid is not convex in OKLCH. Measured on two fitted
+ * near-white endpoints, 18 of 101 interpolated samples fell outside. Since
+ * this package's whole job is to interpolate, sitting on the boundary is not
+ * an option, and shaving the last two percent would not have caught that case.
+ */
+export const GAMUT_CHROMA_SAFETY = 0.86;
+
+/**
+ * Pulls chroma down until the colour fits, leaving lightness and hue alone.
+ *
+ * Lightness is what contrast is computed from, so it is the one channel that
+ * must survive: clipping it to reach the gamut would quietly break the
+ * guarantee the schedule was certified against. Chroma is the channel with
+ * slack.
+ */
+export function clampChromaToGamut(
+  color: OklchColor,
+  safety: number = GAMUT_CHROMA_SAFETY
+): OklchColor {
+  const ceiling = maxChromaInGamut(color.l, color.h) * safety;
+  return color.c <= ceiling ? color : { ...color, c: ceiling };
+}

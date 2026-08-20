@@ -30,19 +30,19 @@ cannot drift from what the package actually resolves.
 |                        |                                                                            |
 | ---------------------- | -------------------------------------------------------------------------- |
 | Runtime dependencies   | **0**                                                                      |
-| Core entry (gzip)      | ~5.2 KB incl. shared chunks, budget 6 KB                                   |
-| DOM entry (gzip)       | ~5.2 KB, budget 6.5 KB                                                     |
-| React UI entry (gzip)  | ~4.5 KB, budget 9 KB                                                       |
-| Preset entry (gzip)    | ~4.1 KB each, budget 7 KB                                                  |
-| Tailwind entry (gzip)  | ~0.5 KB, budget 2 KB                                                       |
+| Core entry (gzip)      | ~5.7 KB incl. shared chunks, budget 6 KB                                   |
+| DOM entry (gzip)       | ~5.6 KB, budget 6.5 KB                                                     |
+| React UI entry (gzip)  | ~4.9 KB, budget 9 KB                                                       |
+| Preset entry (gzip)    | ~4.5 KB each, budget 7 KB                                                  |
+| Tailwind entry (gzip)  | ~0.6 KB, budget 2 KB                                                       |
 | Resolver performance   | median < 1 ms, p95 < 3 ms per resolve ([benchmark](scripts/benchmark.mjs)) |
-| Contrast certification | 1,440-minute WCAG sweep, blocking ([certify](scripts/certify.mjs))         |
+| Contrast certification | 86,400-sample WCAG sweep, blocking ([certify](scripts/certify.mjs))        |
 | Node.js                | `>=24 <27`                                                                 |
 
 Sizes are the **transitive** cost of each entry — the entry plus every shared
 chunk it imports, which is what a consumer actually downloads. WCAG and sRGB
-conversion maths lives only in the `testing` and `inspect` entries and never
-reaches core, dom, or the presets.
+conversion maths lives only in the `testing`, `inspect` and `solve` entries
+and never reaches core, dom, or the presets.
 
 Bundle sizes are enforced in CI on every push via `npm run size`
 ([scripts/size-check.mjs](scripts/size-check.mjs)); resolver performance is
@@ -190,9 +190,33 @@ defineThemeSystem({
 
 Roles never change interpolation — they only say which pairs must stay legible.
 
-Use `holdThenSnap()` to move through a swap in a single minute. Because the
-resolver only ever evaluates whole minutes, two stops a minute apart have no
-sampleable interior, so the crossing can never be rendered:
+A crossing cannot be smoothed away — the readable region genuinely has two
+disconnected halves, and any continuous path between them passes through
+unreadable. So the schedule declares where it steps instead. Mark a stop
+`jumpAfter: true` and its tokens hold until the next stop, then change at once:
+
+```ts
+stops: [
+  { minute: 0, appearance: 'dark', phase: 'night', tokens: nightTokens },
+  {
+    minute: 331,
+    appearance: 'dark',
+    phase: 'dawn',
+    tokens: lastLegibleNightTokens,
+    jumpAfter: true // hold here, then change instantly at 332
+  },
+  { minute: 332, appearance: 'light', phase: 'dawn', tokens: firstDayTokens }
+];
+```
+
+Before 0.3 this safety came from the resolver truncating to whole minutes, so
+two stops a minute apart had no sampleable interior. That worked and was
+brittle: sampling any finer reintroduced the bug, and it did — 38 of 61 seconds
+between two such stops fell below AA once we looked. A declared jump holds at
+any resolution, which is why the resolver can now be asked for a fractional
+minute.
+
+`holdThenSnap()` still writes the pair for you:
 
 ```ts
 import { holdThenSnap } from '@divypandya/time-aware-theme';
@@ -227,7 +251,34 @@ Failures name the minute, the pair, and the interval responsible:
 Contrast below AA on 90 sample(s) between 15:49 and 17:18.
   Worst: 1.00:1 at 16:33 ("foreground" on "background", needs 4.5:1)
   Interval: afternoon -> dusk at t=0.51
+  Smallest fix: "foreground" darker, L 0.573 -> 0.209 (-0.364)
+  If the pair swaps sides here, mark the earlier stop `jumpAfter: true` ...
 ```
+
+The suggested lightness is in the same units the stops are written in, so it
+can be typed straight into the offending one. It is rounded away from the
+boundary rather than to it, because a value rounded on the way back in would
+otherwise fail by a hair. Where a token is shared with another pair, the
+message says so — a background darkened to rescue body text can push a caption
+the other way, and the number is computed for one pair in isolation.
+
+Sample sub-minute when you want a sharper sweep:
+
+```ts
+import {
+  PER_SECOND,
+  assertContrast
+} from '@divypandya/time-aware-theme/testing';
+
+assertContrast(system, { stepMinutes: PER_SECOND }); // 86,400 samples
+```
+
+`assertContrast` proves every resolved moment is legible. It says nothing about
+the frames a CSS transition paints on the way between them — with
+`transition: background-color .35s` the browser fades straight through a
+crossing, and our own demo painted 1.02:1 for roughly 100ms while every gate
+stayed green. `assertRenderedPath(system)` checks those frames, skipping
+declared jumps because nothing is blended across them.
 
 ## Smooth transitions
 
@@ -243,6 +294,25 @@ const { appearance, nextAppearance, progress, phase, nextPhase } =
 `progress` runs 0→1 through the current stop interval and resets at each stop,
 so you can drive an opacity crossfade, or render "dusk in 12 min" from
 `nextPhase`. Respect `prefers-reduced-motion` when you do.
+
+### Transitions across a jump
+
+If you animate your custom properties — and you should, the glide looks far
+better for it — the browser will happily animate across a declared jump too,
+painting exactly the frames the jump exists to skip. The controller sets
+`data-theme-flip` on the target element for the frame in which that happens, so
+a stylesheet can opt out:
+
+```css
+[data-theme-flip] * {
+  transition: none !important;
+}
+```
+
+`tailwindCss()` includes this rule; `transitionCss()` emits it alone, and both
+accept a different attribute name if `data-theme-flip` collides with something.
+The controller's `flipAttribute` option must match. Pass `null` to switch it
+off entirely, in which case animate nothing, or animate and accept the frames.
 
 ## Scoped previews
 
@@ -273,8 +343,10 @@ all, use `applySnapshotTo(element, snapshot, { tokenKeys })`.
   their colour cast rather than drifting toward an arbitrary hue.
 - **Hue takes the shortest path** around the colour circle, so 350° → 10°
   crosses 0° rather than travelling backwards through 180°.
-- **Only whole minutes are ever resolved** — `normalizeMinute` truncates. This
-  is what makes `holdThenSnap()` exact rather than approximate.
+- **Fractional minutes resolve.** `normalizeMinute` no longer truncates, so
+  `resolveThemeAt(system, 331.5)` is a real answer and the controller ticks
+  sub-minute where a schedule needs it. What makes a jump exact is that the
+  stop declares it, not that time was rounded.
 
 Resolve a snapshot directly, without the DOM controller, for server-side
 rendering or previews:
@@ -307,7 +379,7 @@ controller.getSnapshot().phase;
 
 ## Presets
 
-Four ready-made schedules, each certified across all 1,440 minutes in CI. Import
+Four ready-made schedules, each certified per second of the day in CI. Import
 one granularly so you never bundle the others:
 
 ```ts
@@ -342,6 +414,83 @@ arcs ship under new names rather than as revisions. Backgrounds and accents are
 authored by hand; every other token is solved for a contrast target and clamped
 into the sRGB gamut by [scripts/generate-presets.mjs](scripts/generate-presets.mjs),
 which refuses to emit anything it cannot certify.
+
+## Solving and extending
+
+Where a theme changes polarity is not a design decision — it is whatever the
+contrast maths allows, and people are bad at it in a specific way. Placing the
+switch by hand gave every shipped preset a `dusk` phase one minute long, and
+made every switch 2.0–2.5× wider than it needed to be. `solveSchedule` takes a
+plain curve with no `appearance` and works out both:
+
+```ts
+import { solveSchedule } from '@divypandya/time-aware-theme/solve';
+
+const { system, switches } = solveSchedule({
+  staticThemes: { light, dark },
+  roles: { pairs: [{ bg: 'background', fg: 'foreground', min: 'AA' }] },
+  curve: [
+    { minute: 0, phase: 'night', tokens: night },
+    { minute: 420, phase: 'sunrise', tokens: day },
+    { minute: 1200, phase: 'dusk', tokens: evening }
+  ]
+});
+
+switches[0].minute; // 331
+switches[0].widestJump; // 0.412 — in OKLCH lightness
+```
+
+Backgrounds glide the whole way; foregrounds hold and change once, at the last
+minute the outgoing set is still legible. The output is ordinary stops, so the
+resolver is unchanged and hand-written schedules keep working.
+
+`extendPreset` adds tokens to a schedule that has already been certified,
+without dropping them outside that guarantee:
+
+```ts
+import { extendPreset } from '@divypandya/time-aware-theme/solve';
+import dawnToDusk from '@divypandya/time-aware-theme/presets/dawn-to-dusk';
+
+export const themed = extendPreset(dawnToDusk, {
+  tokens: {
+    // Brand identity is the hue and chroma; lightness is whatever stays visible.
+    brand: { on: 'background', min: 'non-text', hue: 265, chroma: 0.14 },
+    // Solved against `brand` at every stop, and declares its own role pair.
+    brandForeground: { on: 'brand', min: 'AA' },
+    // An arc you supply, riding the preset's own day curve.
+    shadow: {
+      light: 'oklch(0.2 0.02 265 / 0.12)',
+      dark: 'oklch(0 0 none / 0.5)',
+      decorative: true
+    }
+  }
+});
+```
+
+Supplied arcs must appear in a role or be marked `decorative: true`. That is
+the whole point: a preset that says "certified" should stay true of every token
+in it, including the ones added after it shipped. Supplied colours are checked,
+never adjusted — quietly repainting a brand colour to reach a ratio would be
+worse than saying it does not reach one — so a failure names the arc and leaves
+it alone:
+
+```
+extendPreset() could not certify the tokens it was given.
+  "brandForeground" on "brand" reaches only 4.47:1 near minute 1225, needs 4.5:1.
+  No text colour works: "brand" spans L 0.500..0.585 while the theme is light,
+  which straddles the band where neither black nor white clears AA. White
+  bottoms out at 4.28:1 at 20:30; black bottoms out at 3.39:1 at 12:00.
+```
+
+Both run at build time and pull in luminance maths that is deliberately kept
+out of the shipped bundle. Call them at module scope, not per request.
+
+Two things worth knowing. Solved foregrounds pick their direction once per
+polarity region, never per stop — a token free to choose stop by stop would
+cross mid-interval and open an undeclared jump in a schedule certified without
+one. And they are free to run opposite to the page: a light accent needs dark
+text even while the page around it is dark, which is what the shipped presets
+themselves do.
 
 ## Tailwind v4
 
@@ -381,7 +530,20 @@ console.log(formatInspection(inspect(system, 16 * 60 + 33)));
 
 `inspectSchedule(system)` summarises a whole day, collapsing failures into
 windows so a broken schedule reads as one window with a worst case rather than
-ninety near-identical lines.
+ninety near-identical lines. It also reports where the schedule stops gliding
+and steps — on a passing schedule too, because a switch in the wrong place or a
+step wider than the maths needs shows up here and nowhere else:
+
+```
+PASS  1440 minutes, no contrast or gamut problems
+  holds (2)
+    05:31-05:32  dawn -> dawn  appearance flips, step 0.659 L in "accentForeground"
+    20:30-20:31  dusk -> dusk  appearance flips, step 0.672 L in "accentForeground"
+```
+
+The step quoted is the widest across all tokens rather than the background's.
+In every warm preset a foreground on an accent moves further than the page
+does, so quoting the background alone understates what is visible.
 
 ## React UI
 
@@ -420,14 +582,16 @@ README covering setup:
 - `@divypandya/time-aware-theme/react-ui`
 - `@divypandya/time-aware-theme/testing`
 - `@divypandya/time-aware-theme/inspect`
+- `@divypandya/time-aware-theme/solve` (build-time)
 - `@divypandya/time-aware-theme/tailwind`
 - `@divypandya/time-aware-theme/presets/{dawn-to-dusk,tidal,contrast-first,paper}`
 
 ## Public surface
 
 **`.`** — `defineThemeSystem`, `holdThenSnap`, `resolveThemeAt`,
-`resolveThemeSnapshot`, `serializeOklch`, `normalizeMinute`, `MINUTES_PER_DAY`
-(plus `createThemeController` and `applySnapshotTo`, re-exported from `/dom`)
+`resolveThemeSnapshot`, `serializeOklch`, `parseOklch`, `normalizeMinute`,
+`MINUTES_PER_DAY` (plus `createThemeController` and `applySnapshotTo`,
+re-exported from `/dom`)
 
 **`/dom`** — `createThemeController`, `applySnapshotTo`
 
@@ -437,13 +601,18 @@ README covering setup:
 `PhaseLabel`, `formatMinute`
 
 **`/testing`** — `createManualClock`, `sampleSchedule`, `assertContrast`,
-`findContrastViolations`, `contrastRatio`, `contrastThreshold`, `meetsContrast`,
-`meetsWcagAA`, `relativeLuminance`, `isOutOfSrgbGamut`
+`findContrastViolations`, `assertRenderedPath`, `findRenderedPathViolations`,
+`PER_SECOND`, `contrastRatio`, `contrastThreshold`, `meetsContrast`,
+`meetsWcagAA`, `relativeLuminance`, `isOutOfSrgbGamut`, `maxChromaInGamut`,
+`clampChromaToGamut`, `GAMUT_CHROMA_SAFETY`
+
+**`/solve`** — `solveSchedule`, `extendPreset`
 
 **`/inspect`** — `inspect`, `inspectSchedule`, `formatInspection`,
 `formatScheduleReport`
 
-**`/tailwind`** — `tailwindCss`, `themeInlineCss`, `staticFallbackCss`
+**`/tailwind`** — `tailwindCss`, `themeInlineCss`, `staticFallbackCss`,
+`transitionCss`
 
 **`/presets/*`** — each preset is a default export plus a named export
 (`dawnToDusk`, `tidal`, `contrastFirst`, `paper`)
@@ -454,10 +623,11 @@ README covering setup:
 - React is an optional peer for the adapter entry point.
 - The DOM controller is safe to construct without `window` or `document`; it simply becomes inert.
 - The controller writes resolved theme tokens as CSS custom properties, toggles the `.dark` class, and updates `color-scheme`.
-- WCAG and sRGB conversion maths lives only in the `/testing` and `/inspect`
-  entries, so it never reaches core, dom, or the presets.
-- Every schedule this repo ships passes a 1,440-minute WCAG sweep in CI
-  (`npm run certify`).
+- WCAG and sRGB conversion maths lives only in the `/testing`, `/inspect` and
+  `/solve` entries, so it never reaches core, dom, or the presets.
+- Every schedule this repo ships passes an 86,400-sample WCAG sweep in CI — one
+  per second of the day — plus a check of the frames a CSS transition would
+  paint between them (`npm run certify`).
 
 ## Non-goals
 

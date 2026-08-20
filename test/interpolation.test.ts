@@ -181,6 +181,167 @@ describe('achromatic hue interpolation', () => {
   });
 });
 
+describe('declared jumps hold at any resolution', () => {
+  const roles = {
+    pairs: [{ bg: 'background', fg: 'foreground', min: 'AA' as const }]
+  };
+  const staticThemes = {
+    light: {
+      background: 'oklch(0.97 0.01 250 / 1)',
+      foreground: 'oklch(0.17 0.03 250 / 1)'
+    },
+    dark: {
+      background: 'oklch(0.13 0.02 250 / 1)',
+      foreground: 'oklch(0.96 0.01 250 / 1)'
+    }
+  };
+  const dark = {
+    background: 'oklch(0.14 0.02 260 / 1)',
+    foreground: 'oklch(0.96 0.01 260 / 1)'
+  };
+  const light = {
+    background: 'oklch(0.97 0.01 75 / 1)',
+    foreground: 'oklch(0.25 0.05 55 / 1)'
+  };
+  const system = defineThemeSystem({
+    staticThemes,
+    roles,
+    stops: [
+      ...holdThenSnap({
+        at: 360,
+        from: dark,
+        to: light,
+        fromAppearance: 'dark',
+        toAppearance: 'light',
+        phase: 'night',
+        nextPhase: 'day'
+      }),
+      ...holdThenSnap({
+        at: 1080,
+        from: light,
+        to: dark,
+        fromAppearance: 'light',
+        toAppearance: 'dark',
+        phase: 'day',
+        nextPhase: 'night'
+      })
+    ]
+  });
+
+  it('never interpolates across the boundary, however finely sampled', () => {
+    // The property the whole design rests on. Before 0.3 this interval was
+    // only safe because nothing sampled inside it.
+    for (let step = 0; step < 60; step += 1) {
+      const held = resolveThemeAt(system, 360 + step / 60);
+      expect(held.tokens.background?.l).toBeCloseTo(0.14, 9);
+      expect(held.tokens.foreground?.l).toBeCloseTo(0.96, 9);
+    }
+    const after = resolveThemeAt(system, 361);
+    expect(after.tokens.background?.l).toBeCloseTo(0.97, 9);
+  });
+
+  it('gives the same answer at every resolution', () => {
+    for (const grain of [1, 1 / 60, 1 / 1000]) {
+      const before = resolveThemeAt(system, 361 - grain);
+      const at = resolveThemeAt(system, 361);
+      expect(before.tokens.background?.l).toBeCloseTo(0.14, 9);
+      expect(at.tokens.background?.l).toBeCloseTo(0.97, 9);
+    }
+  });
+
+  it('marks the held stop and not its neighbour', () => {
+    expect(system.stops[0]?.jumpAfter).toBe(true);
+    expect(system.stops[1]?.jumpAfter).toBe(false);
+  });
+});
+
+describe('schedules written before jumpAfter existed', () => {
+  const roles = {
+    pairs: [{ bg: 'background', fg: 'foreground', min: 'AA' as const }]
+  };
+  const staticThemes = {
+    light: {
+      background: 'oklch(0.97 0.01 250 / 1)',
+      foreground: 'oklch(0.17 0.03 250 / 1)'
+    },
+    dark: {
+      background: 'oklch(0.13 0.02 250 / 1)',
+      foreground: 'oklch(0.96 0.01 250 / 1)'
+    }
+  };
+  const dark = {
+    background: 'oklch(0.14 0.02 260 / 1)',
+    foreground: 'oklch(0.96 0.01 260 / 1)'
+  };
+  const light = {
+    background: 'oklch(0.97 0.01 75 / 1)',
+    foreground: 'oklch(0.25 0.05 55 / 1)'
+  };
+
+  /** The pre-0.3 shape: two stops a minute apart, nothing declared. */
+  function legacy() {
+    return defineThemeSystem({
+      staticThemes,
+      roles,
+      stops: [
+        { minute: 360, appearance: 'dark', phase: 'night', tokens: dark },
+        { minute: 361, appearance: 'light', phase: 'day', tokens: light },
+        { minute: 1080, appearance: 'light', phase: 'day', tokens: light },
+        { minute: 1081, appearance: 'dark', phase: 'night', tokens: dark }
+      ]
+    });
+  }
+
+  it('adopts the one-minute swap as a declared jump', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const system = legacy();
+    expect(system.stops[0]?.jumpAfter).toBe(true);
+    expect(system.stops[1]?.jumpAfter).toBe(false);
+    expect(system.stops[2]?.jumpAfter).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('adopted 2'));
+    warn.mockRestore();
+  });
+
+  it('is then safe at a resolution it was never designed for', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const system = legacy();
+    warn.mockRestore();
+    // Sampled per second across the old gap: held, then instant.
+    for (let second = 0; second < 60; second += 1) {
+      expect(
+        resolveThemeAt(system, 360 + second / 60).tokens.background?.l
+      ).toBeCloseTo(0.14, 9);
+    }
+    expect(resolveThemeAt(system, 361).tokens.background?.l).toBeCloseTo(
+      0.97,
+      9
+    );
+  });
+
+  it('leaves a one-minute gap alone when nothing swaps', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const system = defineThemeSystem({
+      staticThemes,
+      roles,
+      stops: [
+        { minute: 0, appearance: 'dark', phase: 'a', tokens: dark },
+        {
+          minute: 1,
+          appearance: 'dark',
+          phase: 'b',
+          tokens: {
+            background: 'oklch(0.16 0.02 260 / 1)',
+            foreground: 'oklch(0.94 0.01 260 / 1)'
+          }
+        }
+      ]
+    });
+    // Same polarity either side, so it is an ordinary interval, not a jump.
+    expect(system.stops[0]?.jumpAfter).toBe(false);
+    warn.mockRestore();
+  });
+});
+
 describe('role swap lint', () => {
   const roles = {
     pairs: [{ bg: 'background', fg: 'foreground', min: 'AA' as const }]

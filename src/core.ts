@@ -22,6 +22,20 @@ export interface ThemeStopInput<
   readonly appearance: ThemeAppearance;
   readonly phase: TPhase;
   readonly tokens: TTokens;
+  /**
+   * Hold this stop's tokens until the next stop, then change instantly.
+   *
+   * A declared discontinuity. Interpolating a foreground/background pair
+   * across a polarity swap necessarily passes through equal luminance, so the
+   * only safe crossing is one that is never rendered. Before this existed the
+   * guarantee came from `normalizeMinute` truncating — two stops a minute
+   * apart had no sampleable interior — which made safety a property of the
+   * sampling rate rather than of the schedule. Sampled per second, that same
+   * gap shows 38 of 61 seconds below AA.
+   *
+   * Declaring it instead holds at any resolution.
+   */
+  readonly jumpAfter?: boolean;
 }
 
 /**
@@ -82,6 +96,8 @@ export interface NormalizedThemeStop<TPhase extends string = string> {
   readonly appearance: ThemeAppearance;
   readonly phase: TPhase;
   readonly tokens: Readonly<Record<string, OklchColor>>;
+  /** Hold these tokens to the next stop, then change instantly. */
+  readonly jumpAfter: boolean;
 }
 
 export interface ThemeSystem<TPhase extends string = string> {
@@ -113,6 +129,16 @@ export interface ThemeSnapshot<TPhase extends string = string> {
   readonly nextPhase: TPhase | 'static';
   /** Appearance of the stop being interpolated toward. Wraps at end of day. */
   readonly nextAppearance: ThemeAppearance;
+  /**
+   * True while inside a declared hold — the tokens are frozen and will change
+   * instantly at the next stop rather than blending into it.
+   *
+   * The controller uses this to tell the browser not to animate that change.
+   * Without it the resolver is clean at every sampled moment while the browser
+   * still paints its way through the crossing: our own demo, with a 0.35s
+   * colour transition, renders 1.02:1 for roughly 100ms at the switch.
+   */
+  readonly holding: boolean;
 }
 
 export interface ThemeCssSnapshot {
@@ -169,8 +195,9 @@ export function defineThemeSystem<
   validateSortedUniqueStops(stops);
 
   const roles = normalizeRoles(input.roles, tokenKeys);
-  validateNoObservableRoleSwap(stops, roles);
-  warnOnDegenerateSchedule(stops, input.name);
+  const migrated = adoptLegacyOneMinuteJumps(stops, roles, input.name);
+  validateNoObservableRoleSwap(migrated, roles);
+  warnOnDegenerateSchedule(migrated, input.name);
 
   return deepFreeze({
     ...(input.name ? { name: input.name } : {}),
@@ -180,17 +207,18 @@ export function defineThemeSystem<
       light: normalizedLight,
       dark: normalizedDark
     },
-    stops
+    stops: migrated
   });
 }
 
 /**
- * Expands a role swap into a hold stop and a snap stop one minute later.
+ * Expands a role swap into a hold stop and the stop it changes to.
  *
- * `resolveThemeAt` only ever evaluates integer minutes (`normalizeMinute`
- * truncates), so two stops one minute apart have no sampleable interior. The
- * foreground/background crossing that would otherwise collapse contrast to
- * ~1:1 mid-interval becomes unobservable rather than merely unlikely.
+ * The first stop is marked `jumpAfter`, so the resolver holds its tokens to
+ * the boundary and then changes instantly. Interpolating across a polarity
+ * swap necessarily passes through equal luminance; declaring the
+ * discontinuity is what keeps that from ever being rendered — at any
+ * resolution, not merely at whole-minute sampling.
  */
 export function holdThenSnap<
   TTokens extends ThemeTokens,
@@ -213,7 +241,8 @@ export function holdThenSnap<
       minute: at,
       appearance: options.fromAppearance,
       phase: options.phase,
-      tokens: options.from
+      tokens: options.from,
+      jumpAfter: true
     },
     {
       minute: normalizeMinute(at + 1),
@@ -245,7 +274,8 @@ export function resolveThemeAt<TPhase extends string = string>(
       cssText: toCssText(system.tokenKeys, stop.tokens),
       progress: 0,
       nextPhase: stop.phase,
-      nextAppearance: stop.appearance
+      nextAppearance: stop.appearance,
+      holding: stop.jumpAfter
     });
   }
 
@@ -271,7 +301,8 @@ export function resolveThemeAt<TPhase extends string = string>(
       cssText: toCssText(system.tokenKeys, exact.tokens),
       progress: 0,
       nextPhase: following.phase,
-      nextAppearance: following.appearance
+      nextAppearance: following.appearance,
+      holding: exact.jumpAfter
     });
   }
 
@@ -280,7 +311,12 @@ export function resolveThemeAt<TPhase extends string = string>(
     normalizedMinute
   );
   const t = span === 0 ? 0 : elapsed / span;
-  const tokens = interpolateTokenMap(previous.tokens, next.tokens, t);
+  // A declared hold: keep the previous stop's tokens right up to the boundary,
+  // then change instantly. Never interpolated, so the polarity swap is
+  // unobservable at any resolution rather than only at whole minutes.
+  const tokens = previous.jumpAfter
+    ? previous.tokens
+    : interpolateTokenMap(previous.tokens, next.tokens, t);
 
   return freezeSnapshot({
     mode: 'time-aware',
@@ -291,7 +327,8 @@ export function resolveThemeAt<TPhase extends string = string>(
     cssText: toCssText(system.tokenKeys, tokens),
     progress: t,
     nextPhase: next.phase,
-    nextAppearance: next.appearance
+    nextAppearance: next.appearance,
+    holding: previous.jumpAfter
   });
 }
 
@@ -311,7 +348,8 @@ export function resolveThemeSnapshot<TPhase extends string = string>(
       cssText: toCssText(system.tokenKeys, tokens),
       progress: 0,
       nextPhase: 'static',
-      nextAppearance: mode
+      nextAppearance: mode,
+      holding: false
     }) as ThemeSnapshot<TPhase>;
   }
 
@@ -329,10 +367,14 @@ export function normalizeMinute(minute: number): number {
     throw new TypeError('Minute must be a finite number.');
   }
 
-  const rounded = Math.trunc(minute);
+  // Fractions are preserved. Before 0.3 this truncated, and the whole
+  // crossing guarantee rested on that: two stops a minute apart had no
+  // sampleable interior. Safety now comes from `jumpAfter` being declared on
+  // the stop, which holds at any resolution — so time no longer has to be
+  // rounded to keep it.
   const normalized =
-    ((rounded % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
-  return normalized;
+    ((minute % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  return normalized === MINUTES_PER_DAY ? 0 : normalized;
 }
 
 function normalizeStop<TTokens extends ThemeTokens, TPhase extends string>(
@@ -344,7 +386,9 @@ function normalizeStop<TTokens extends ThemeTokens, TPhase extends string>(
     throw new TypeError(`Stop ${index} minute must be a finite number.`);
   }
 
-  const minute = normalizeMinute(input.minute);
+  // Stop minutes stay whole numbers — a schedule is authored in minutes even
+  // though it can now be sampled between them.
+  const minute = normalizeMinute(Math.trunc(input.minute));
   const tokens = normalizeTokenMap(
     input.tokens,
     tokenKeys,
@@ -361,6 +405,7 @@ function normalizeStop<TTokens extends ThemeTokens, TPhase extends string>(
   }
 
   return {
+    jumpAfter: input.jumpAfter === true,
     minute,
     appearance: input.appearance,
     phase: input.phase,
@@ -484,13 +529,17 @@ function normalizeRoles(
 }
 
 /**
- * Rejects role swaps that a consumer can actually observe.
+ * Rejects role swaps that are interpolated rather than declared.
  *
- * If `fg.l - bg.l` changes sign between consecutive stops, the two tokens
- * cross, and contrast collapses toward 1:1 somewhere in between. That is only
- * a real defect when an integer minute exists strictly between the two stops —
- * a one-minute gap (see `holdThenSnap`) has no sampleable interior, so the
- * crossing can never be rendered.
+ * If `fg.l - bg.l` changes sign between consecutive stops the two tokens
+ * cross, and contrast collapses toward 1:1 somewhere in between. The only safe
+ * crossing is one that is never rendered, which now means one the schedule
+ * declares with `jumpAfter` (see `holdThenSnap`).
+ *
+ * This used to permit any one-minute gap, on the grounds that no integer
+ * minute fell inside it. That made safety a property of how often we sampled
+ * rather than of the schedule: at one-second resolution the same gap renders
+ * 38 of 61 seconds below AA.
  */
 function validateNoObservableRoleSwap<TPhase extends string>(
   stops: readonly NormalizedThemeStop<TPhase>[],
@@ -507,11 +556,9 @@ function validateNoObservableRoleSwap<TPhase extends string>(
       continue;
     }
 
-    const span =
-      next.minute > previous.minute
-        ? next.minute - previous.minute
-        : next.minute + MINUTES_PER_DAY - previous.minute;
-    if (span <= 1) {
+    // Declared discontinuity: held to the boundary, then instant. Safe at any
+    // resolution, so there is nothing to check.
+    if (previous.jumpAfter) {
       continue;
     }
 
@@ -525,13 +572,70 @@ function validateNoObservableRoleSwap<TPhase extends string>(
         throw new TypeError(
           `Role pair "${role.fg}" on "${role.bg}" swaps sides between minute ` +
             `${previous.minute} (${previous.phase}) and ${next.minute} ` +
-            `(${next.phase}) across a ${span}-minute interval. The two tokens ` +
-            `cross mid-interval and contrast collapses to ~1:1. Use ` +
-            `holdThenSnap() so the swap happens in a single minute.`
+            `(${next.phase}), and that interval is interpolated. The two ` +
+            `tokens cross partway and contrast collapses to ~1:1. Mark the ` +
+            `earlier stop \`jumpAfter: true\` — or use holdThenSnap() — so the ` +
+            `swap is held and then instant rather than blended through.`
         );
       }
     }
   }
+}
+
+/**
+ * Adopts the pre-0.3 convention as an explicit declaration.
+ *
+ * Before `jumpAfter`, a swap was expressed as two stops one minute apart and
+ * kept safe only by whole-minute sampling. Those are recognisable — adjacent,
+ * one minute apart, with a declared pair changing sides — so they are rewritten
+ * rather than left to break under finer resolution.
+ */
+function adoptLegacyOneMinuteJumps<TPhase extends string>(
+  stops: readonly NormalizedThemeStop<TPhase>[],
+  roles: readonly NormalizedThemeRolePair[],
+  name: string | undefined
+): readonly NormalizedThemeStop<TPhase>[] {
+  if (roles.length === 0 || stops.length < 2) {
+    return stops;
+  }
+
+  let adopted = 0;
+  const next = stops.map((stop, index) => {
+    if (stop.jumpAfter) {
+      return stop;
+    }
+    const following = stops[(index + 1) % stops.length];
+    if (!following) {
+      return stop;
+    }
+    const span =
+      following.minute > stop.minute
+        ? following.minute - stop.minute
+        : following.minute + MINUTES_PER_DAY - stop.minute;
+    if (span > 1) {
+      return stop;
+    }
+    const swaps = roles.some((role) => {
+      const before = signedDelta(stop.tokens, role);
+      const after = signedDelta(following.tokens, role);
+      return before !== 0 && after !== 0 && before > 0 !== after > 0;
+    });
+    if (!swaps) {
+      return stop;
+    }
+    adopted += 1;
+    return { ...stop, jumpAfter: true };
+  });
+
+  if (adopted > 0 && isDevMode()) {
+    warn(
+      `${name ? `[${name}] ` : ''}adopted ${adopted} one-minute swap(s) as ` +
+        `declared jumps. That pattern was only safe because minutes were ` +
+        `rounded; mark the stop \`jumpAfter: true\` (or use holdThenSnap) to ` +
+        `say so explicitly.`
+    );
+  }
+  return next;
 }
 
 function signedDelta(
@@ -605,6 +709,19 @@ function warn(message: string): void {
   } catch {
     // A missing or hostile console must never break theme definition.
   }
+}
+
+/**
+ * Parses an OKLCH string or partial object into a frozen colour.
+ *
+ * The counterpart to `serializeOklch`, which has been public since 0.1 while
+ * the direction people actually need — from what they wrote in a stop to
+ * numbers they can do maths on — was internal. Anything reasoning about a
+ * theme (extending one, fitting a brand colour to it, writing a bespoke
+ * check) needs this first.
+ */
+export function parseOklch(input: OklchInput, label = 'color'): OklchColor {
+  return normalizeOklch(input, label);
 }
 
 function normalizeOklch(input: OklchInput, label: string): OklchColor {

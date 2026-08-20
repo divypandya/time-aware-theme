@@ -34,15 +34,17 @@ function tokenValue(token: unknown) {
 }
 
 describe('normalizeMinute', () => {
-  it('wraps and truncates', () => {
+  it('wraps without rounding', () => {
     expect(normalizeMinute(0)).toBe(0);
     expect(normalizeMinute(MINUTES_PER_DAY)).toBe(0);
     expect(normalizeMinute(MINUTES_PER_DAY + 90)).toBe(90);
     expect(normalizeMinute(-1)).toBe(1439);
     expect(normalizeMinute(-MINUTES_PER_DAY - 30)).toBe(1410);
-    // Truncation is what makes integer minutes the complete observable set.
-    expect(normalizeMinute(90.9)).toBe(90);
-    expect(normalizeMinute(-0.5)).toBe(0);
+    // Fractions survive. Before 0.3 this truncated, and the crossing guarantee
+    // depended on it; safety now comes from `jumpAfter` being declared, which
+    // holds however finely the schedule is sampled.
+    expect(normalizeMinute(90.9)).toBeCloseTo(90.9, 9);
+    expect(normalizeMinute(-0.5)).toBeCloseTo(1439.5, 9);
   });
 
   it('rejects non-finite input', () => {

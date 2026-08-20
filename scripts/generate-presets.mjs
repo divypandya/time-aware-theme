@@ -14,8 +14,11 @@
  * Regenerate with: node scripts/generate-presets.mjs
  */
 import { writeFileSync } from 'node:fs';
-import { defineThemeSystem, holdThenSnap } from '../dist/index.js';
+import { defineThemeSystem } from '../dist/index.js';
+import { solveSchedule } from '../dist/solve.js';
 import {
+  GAMUT_CHROMA_SAFETY,
+  clampChromaToGamut,
   contrastRatio,
   findContrastViolations,
   isOutOfSrgbGamut,
@@ -25,29 +28,11 @@ import {
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const round = (value, places = 4) => Number.parseFloat(value.toFixed(places));
 
-/** Largest in-gamut chroma for a given lightness and hue. */
-function maxChroma(l, h) {
-  let low = 0;
-  let high = 0.4;
-  for (let i = 0; i < 32; i += 1) {
-    const mid = (low + high) / 2;
-    if (isOutOfSrgbGamut({ l, c: mid, h, alpha: 1 })) {
-      high = mid;
-    } else {
-      low = mid;
-    }
-  }
-  return low;
-}
-
-// Interpolating between two in-gamut OKLCH colours can still leave the sRGB
-// gamut — the gamut is not convex in this space. Measured 18 of 101 samples
-// out of gamut between two fitted near-white endpoints. Hence a real margin
-// rather than shaving the last two percent.
-const CHROMA_SAFETY = 0.86;
-
+// The bisection and the safety margin both live in the package now, exported
+// from /testing, so a user fitting their own colours gets the same answer this
+// generator does rather than a near-copy that drifts.
 function fit(color) {
-  const c = Math.min(color.c, maxChroma(color.l, color.h) * CHROMA_SAFETY);
+  const c = clampChromaToGamut({ ...color, alpha: 1 }, GAMUT_CHROMA_SAFETY).c;
   return { l: round(color.l), c: round(c), h: round(color.h, 2), alpha: 1 };
 }
 
@@ -319,59 +304,39 @@ for (const preset of presets) {
   const level = preset.level ?? 'AA';
   const identifier = preset.id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 
-  // Build the schedule in memory and sweep it before emitting anything. A
-  // generator that can produce an uncertifiable preset is just a slower way of
-  // hand-authoring the same bug.
-  const system = defineThemeSystem({
+  const roles = {
+    pairs: [
+      { bg: 'background', fg: 'foreground', min: level },
+      { bg: 'surface', fg: 'surfaceForeground', min: level },
+      { bg: 'accent', fg: 'accentForeground', min: level }
+    ]
+  };
+
+  // A plain day, with no appearance and no hand-placed switch. Writing those
+  // by hand is what produced the asymmetry: dawn got a real hold while dusk
+  // existed only as the snap stop, so its label held for sixty seconds while
+  // every other phase ran for hours — identically in all four presets, because
+  // one template generated them all.
+  const { system: solvedInput, switches } = solveSchedule({
     name: preset.id,
     staticThemes: { light: built.midday, dark: built.deepNight },
-    roles: {
-      pairs: [
-        { bg: 'background', fg: 'foreground', min: level },
-        { bg: 'surface', fg: 'surfaceForeground', min: level },
-        { bg: 'accent', fg: 'accentForeground', min: level }
-      ]
-    },
-    stops: [
-      {
-        minute: 0,
-        appearance: 'dark',
-        phase: 'night',
-        tokens: built.deepNight
-      },
-      { minute: 300, appearance: 'dark', phase: 'dawn', tokens: built.dawn },
-      ...holdThenSnap({
-        at: 390,
-        from: built.dawn,
-        to: built.sunrise,
-        fromAppearance: 'dark',
-        toAppearance: 'light',
-        phase: 'dawn',
-        nextPhase: 'sunrise'
-      }),
-      {
-        minute: 720,
-        appearance: 'light',
-        phase: 'midday',
-        tokens: built.midday
-      },
-      {
-        minute: 990,
-        appearance: 'light',
-        phase: 'afternoon',
-        tokens: built.afternoon
-      },
-      ...holdThenSnap({
-        at: 1140,
-        from: built.dusk,
-        to: built.eveningNight,
-        fromAppearance: 'light',
-        toAppearance: 'dark',
-        phase: 'dusk',
-        nextPhase: 'night'
-      })
+    roles,
+    curve: [
+      { minute: 0, phase: 'night', tokens: built.deepNight },
+      { minute: 300, phase: 'dawn', tokens: built.dawn },
+      { minute: 420, phase: 'sunrise', tokens: built.sunrise },
+      { minute: 720, phase: 'midday', tokens: built.midday },
+      { minute: 990, phase: 'afternoon', tokens: built.afternoon },
+      { minute: 1200, phase: 'dusk', tokens: built.dusk },
+      // Night returns before midnight so dusk is an evening rather than a
+      // quarter of the day. The switch lands inside this interval.
+      { minute: 1320, phase: 'night', tokens: built.deepNight }
     ]
   });
+
+  // Sweep it before emitting anything. A generator that can produce an
+  // uncertifiable preset is just a slower way of hand-authoring the same bug.
+  const system = defineThemeSystem(solvedInput);
 
   const violations = findContrastViolations(system);
   const outOfGamut = sampleSchedule(system).flatMap((snapshot) =>
@@ -399,48 +364,57 @@ for (const preset of presets) {
     continue;
   }
 
+  const stopsLiteral = solvedInput.stops
+    .map((stop) => {
+      const tokens = Object.entries(stop.tokens)
+        .map(([key, value]) => `        ${key}: '${value}'`)
+        .join(',\n');
+      return [
+        '    {',
+        `      minute: ${stop.minute},`,
+        `      appearance: '${stop.appearance}',`,
+        `      phase: '${stop.phase}',`,
+        stop.jumpAfter ? '      jumpAfter: true,' : null,
+        '      tokens: {',
+        tokens,
+        '      }',
+        '    }'
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join(',\n');
+
+  const switchNotes = switches
+    .map(
+      (swap) =>
+        `//   ${String(Math.floor(swap.minute / 60)).padStart(2, '0')}:${String(swap.minute % 60).padStart(2, '0')}  ${swap.phase} -> ${swap.nextPhase}, widest step ${swap.widestJump.toFixed(3)} in lightness`
+    )
+    .join('\n');
+
   const source = `// GENERATED by scripts/generate-presets.mjs — do not edit by hand.
-// Background and accent arcs are design decisions; every other token is solved
-// for a contrast target and clamped into the sRGB gamut, then certified across
-// all 1,440 minutes by scripts/certify.mjs.
-import { defineThemeSystem, holdThenSnap } from '../core.js';
+//
+// The background and accent arcs are design decisions. Every other token is
+// solved for a contrast target and clamped into the sRGB gamut; where the
+// theme changes polarity is solved too, by solveSchedule, rather than placed
+// by hand. Certified per second by scripts/certify.mjs.
+//
+// Switches:
+${switchNotes}
+import { defineThemeSystem } from '../core.js';
 
 /**
  * ${preset.name} — ${preset.description}
  */
-const deepNight = {
-${tokensLiteral(built.deepNight, 2)}
-};
-
-const dawn = {
-${tokensLiteral(built.dawn, 2)}
-};
-
-const sunrise = {
-${tokensLiteral(built.sunrise, 2)}
-};
-
-const midday = {
-${tokensLiteral(built.midday, 2)}
-};
-
-const afternoon = {
-${tokensLiteral(built.afternoon, 2)}
-};
-
-const dusk = {
-${tokensLiteral(built.dusk, 2)}
-};
-
-const eveningNight = {
-${tokensLiteral(built.eveningNight, 2)}
-};
-
 export const ${identifier} = defineThemeSystem({
   name: '${preset.id}',
   staticThemes: {
-    light: midday,
-    dark: deepNight
+    light: {
+${tokensLiteral(built.midday, 6)}
+    },
+    dark: {
+${tokensLiteral(built.deepNight, 6)}
+    }
   },
   roles: {
     pairs: [
@@ -450,30 +424,7 @@ export const ${identifier} = defineThemeSystem({
     ]
   },
   stops: [
-    { minute: 0, appearance: 'dark', phase: 'night', tokens: deepNight },
-    { minute: 300, appearance: 'dark', phase: 'dawn', tokens: dawn },
-    // Each appearance swap occupies a single minute, so the foreground and
-    // background never cross while both are on screen.
-    ...holdThenSnap({
-      at: 390,
-      from: dawn,
-      to: sunrise,
-      fromAppearance: 'dark',
-      toAppearance: 'light',
-      phase: 'dawn',
-      nextPhase: 'sunrise'
-    }),
-    { minute: 720, appearance: 'light', phase: 'midday', tokens: midday },
-    { minute: 990, appearance: 'light', phase: 'afternoon', tokens: afternoon },
-    ...holdThenSnap({
-      at: 1140,
-      from: dusk,
-      to: eveningNight,
-      fromAppearance: 'light',
-      toAppearance: 'dark',
-      phase: 'dusk',
-      nextPhase: 'night'
-    })
+${stopsLiteral}
   ]
 });
 

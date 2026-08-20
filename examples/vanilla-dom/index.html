@@ -32,6 +32,16 @@
           color 0.35s ease;
       }
 
+      /*
+        Without this the browser fades between two clean values at the evening
+        switch and paints ~1.02:1 on the way through — the invisible-text bug,
+        surviving in the paint rather than in the schedule. The controller sets
+        this attribute for the single frame where the change is instant.
+      */
+      [data-theme-flip] * {
+        transition: none !important;
+      }
+
       .card {
         width: min(90vw, 440px);
         padding: 2rem;
