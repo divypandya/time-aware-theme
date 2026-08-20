@@ -6,8 +6,8 @@
 // by hand. Certified per second by scripts/certify.mjs.
 //
 // Switches:
-//   05:31  dawn -> sunrise, widest step 0.412 in lightness
-//   20:30  dusk -> night, widest step 0.368 in lightness
+//   05:53  dawn -> sunrise, widest step 0.038 in lightness
+//   20:53  dusk -> night, widest step 0.032 in lightness
 import { defineThemeSystem } from '../core.js';
 
 /**
@@ -18,19 +18,19 @@ export const dawnToDusk = defineThemeSystem({
   staticThemes: {
     light: {
       background: 'oklch(0.985 0.006 95 / 1)',
-      foreground: 'oklch(0.395 0.015 95 / 1)',
+      foreground: 'oklch(0.145 0.015 95 / 1)',
       surface: 'oklch(0.95 0.006 95 / 1)',
-      surfaceForeground: 'oklch(0.3702 0.015 95 / 1)',
+      surfaceForeground: 'oklch(0.145 0.015 95 / 1)',
       accent: 'oklch(0.5 0.14 30 / 1)',
-      accentForeground: 'oklch(0.9771 0.0097 30 / 1)'
+      accentForeground: 'oklch(0.985 0.0063 30 / 1)'
     },
     dark: {
       background: 'oklch(0.15 0.028 265 / 1)',
-      foreground: 'oklch(0.7549 0.015 265 / 1)',
+      foreground: 'oklch(0.985 0.006 265 / 1)',
       surface: 'oklch(0.2 0.028 265 / 1)',
-      surfaceForeground: 'oklch(0.7784 0.015 265 / 1)',
-      accent: 'oklch(0.78 0.105 292 / 1)',
-      accentForeground: 'oklch(0.328 0.01 292 / 1)'
+      surfaceForeground: 'oklch(0.985 0.006 265 / 1)',
+      accent: 'oklch(0.5038 0.15 292 / 1)',
+      accentForeground: 'oklch(0.985 0.0066 292 / 1)'
     }
   },
   roles: {
@@ -47,11 +47,11 @@ export const dawnToDusk = defineThemeSystem({
       phase: 'night',
       tokens: {
         background: 'oklch(0.15 0.028 265 / 1)',
-        foreground: 'oklch(0.7549 0.015 265 / 1)',
+        foreground: 'oklch(0.985 0.006 265 / 1)',
         surface: 'oklch(0.2 0.028 265 / 1)',
-        surfaceForeground: 'oklch(0.7784 0.015 265 / 1)',
-        accent: 'oklch(0.78 0.105 292 / 1)',
-        accentForeground: 'oklch(0.328 0.01 292 / 1)'
+        surfaceForeground: 'oklch(0.985 0.006 265 / 1)',
+        accent: 'oklch(0.5038 0.15 292 / 1)',
+        accentForeground: 'oklch(0.985 0.0066 292 / 1)'
       }
     },
     {
@@ -60,38 +60,38 @@ export const dawnToDusk = defineThemeSystem({
       phase: 'dawn',
       tokens: {
         background: 'oklch(0.21 0.045 285 / 1)',
-        foreground: 'oklch(0.7835 0.015 285 / 1)',
+        foreground: 'oklch(0.985 0.0063 285 / 1)',
         surface: 'oklch(0.26 0.045 285 / 1)',
-        surfaceForeground: 'oklch(0.8215 0.015 285 / 1)',
-        accent: 'oklch(0.8 0.12 320 / 1)',
-        accentForeground: 'oklch(0.3412 0.01 320 / 1)'
+        surfaceForeground: 'oklch(0.985 0.0063 285 / 1)',
+        accent: 'oklch(0.5091 0.16 320 / 1)',
+        accentForeground: 'oklch(0.985 0.0098 320 / 1)'
       }
     },
     {
-      minute: 331,
+      minute: 353,
       appearance: 'dark',
       phase: 'dawn',
       jumpAfter: true,
       tokens: {
-        background: 'oklch(0.40633 0.03802 321.94167 / 1)',
-        foreground: 'oklch(0.7835 0.015 285 / 1)',
-        surface: 'oklch(0.43438 0.03802 321.94167 / 1)',
-        surfaceForeground: 'oklch(0.8215 0.015 285 / 1)',
-        accent: 'oklch(0.73025 0.12759 340.15 / 1)',
-        accentForeground: 'oklch(0.3412 0.01 320 / 1)'
+        background: 'oklch(0.54567 0.03308 348.15833 / 1)',
+        foreground: 'oklch(0.985 0.0063 285 / 1)',
+        surface: 'oklch(0.55813 0.03308 348.15833 / 1)',
+        surfaceForeground: 'oklch(0.985 0.0063 285 / 1)',
+        accent: 'oklch(0.50716 0.15218 354.45 / 1)',
+        accentForeground: 'oklch(0.985 0.0098 320 / 1)'
       }
     },
     {
-      minute: 332,
+      minute: 354,
       appearance: 'light',
       phase: 'dawn',
       tokens: {
-        background: 'oklch(0.818 0.0234 39.4 / 1)',
-        foreground: 'oklch(0.3848 0.015 68 / 1)',
-        surface: 'oklch(0.8 0.0234 39.4 / 1)',
-        surfaceForeground: 'oklch(0.3593 0.015 68 / 1)',
-        accent: 'oklch(0.584 0.14352 22.4 / 1)',
-        accentForeground: 'oklch(1 0 38 / 1)'
+        background: 'oklch(0.58367 0.03173 355.30833 / 1)',
+        foreground: 'oklch(0.145 0.015 68 / 1)',
+        surface: 'oklch(0.59188 0.03173 355.30833 / 1)',
+        surfaceForeground: 'oklch(0.145 0.015 68 / 1)',
+        accent: 'oklch(0.50694 0.1513 358.35 / 1)',
+        accentForeground: 'oklch(0.985 0.0065 38 / 1)'
       }
     },
     {
@@ -100,11 +100,11 @@ export const dawnToDusk = defineThemeSystem({
       phase: 'sunrise',
       tokens: {
         background: 'oklch(0.97 0.018 68 / 1)',
-        foreground: 'oklch(0.3848 0.015 68 / 1)',
+        foreground: 'oklch(0.145 0.015 68 / 1)',
         surface: 'oklch(0.935 0.018 68 / 1)',
-        surfaceForeground: 'oklch(0.3593 0.015 68 / 1)',
-        accent: 'oklch(0.53 0.1494 38 / 1)',
-        accentForeground: 'oklch(1 0 38 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 68 / 1)',
+        accent: 'oklch(0.5047 0.1423 38 / 1)',
+        accentForeground: 'oklch(0.985 0.0065 38 / 1)'
       }
     },
     {
@@ -113,11 +113,11 @@ export const dawnToDusk = defineThemeSystem({
       phase: 'midday',
       tokens: {
         background: 'oklch(0.985 0.006 95 / 1)',
-        foreground: 'oklch(0.395 0.015 95 / 1)',
+        foreground: 'oklch(0.145 0.015 95 / 1)',
         surface: 'oklch(0.95 0.006 95 / 1)',
-        surfaceForeground: 'oklch(0.3702 0.015 95 / 1)',
+        surfaceForeground: 'oklch(0.145 0.015 95 / 1)',
         accent: 'oklch(0.5 0.14 30 / 1)',
-        accentForeground: 'oklch(0.9771 0.0097 30 / 1)'
+        accentForeground: 'oklch(0.985 0.0063 30 / 1)'
       }
     },
     {
@@ -126,11 +126,11 @@ export const dawnToDusk = defineThemeSystem({
       phase: 'afternoon',
       tokens: {
         background: 'oklch(0.955 0.016 78 / 1)',
-        foreground: 'oklch(0.3741 0.015 78 / 1)',
+        foreground: 'oklch(0.145 0.015 78 / 1)',
         surface: 'oklch(0.92 0.016 78 / 1)',
-        surfaceForeground: 'oklch(0.3478 0.015 78 / 1)',
-        accent: 'oklch(0.51 0.15 35 / 1)',
-        accentForeground: 'oklch(0.9905 0.0041 35 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 78 / 1)',
+        accent: 'oklch(0.5061 0.15 35 / 1)',
+        accentForeground: 'oklch(0.985 0.0064 35 / 1)'
       }
     },
     {
@@ -139,38 +139,38 @@ export const dawnToDusk = defineThemeSystem({
       phase: 'dusk',
       tokens: {
         background: 'oklch(0.925 0.026 58 / 1)',
-        foreground: 'oklch(0.3514 0.015 58 / 1)',
+        foreground: 'oklch(0.145 0.015 58 / 1)',
         surface: 'oklch(0.89 0.026 58 / 1)',
-        surfaceForeground: 'oklch(0.3232 0.015 58 / 1)',
-        accent: 'oklch(0.52 0.15 28 / 1)',
-        accentForeground: 'oklch(1 0 28 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 58 / 1)',
+        accent: 'oklch(0.507 0.15 28 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 28 / 1)'
       }
     },
     {
-      minute: 1230,
+      minute: 1253,
       appearance: 'light',
       phase: 'dusk',
       jumpAfter: true,
       tokens: {
-        background: 'oklch(0.73125 0.0265 19.75 / 1)',
-        foreground: 'oklch(0.3514 0.015 58 / 1)',
-        surface: 'oklch(0.7175 0.0265 19.75 / 1)',
-        surfaceForeground: 'oklch(0.3232 0.015 58 / 1)',
-        accent: 'oklch(0.585 0.13875 4 / 1)',
-        accentForeground: 'oklch(1 0 28 / 1)'
+        background: 'oklch(0.58271 0.02688 350.425 / 1)',
+        foreground: 'oklch(0.145 0.015 58 / 1)',
+        surface: 'oklch(0.58525 0.02688 350.425 / 1)',
+        surfaceForeground: 'oklch(0.145 0.015 58 / 1)',
+        accent: 'oklch(0.50559 0.15 345.6 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 28 / 1)'
       }
     },
     {
-      minute: 1231,
+      minute: 1254,
       appearance: 'dark',
       phase: 'dusk',
       tokens: {
-        background: 'oklch(0.36313 0.02745 307.075 / 1)',
-        foreground: 'oklch(0.7549 0.015 265 / 1)',
-        surface: 'oklch(0.38975 0.02745 307.075 / 1)',
-        surfaceForeground: 'oklch(0.7784 0.015 265 / 1)',
-        accent: 'oklch(0.7085 0.11738 318.4 / 1)',
-        accentForeground: 'oklch(0.328 0.01 292 / 1)'
+        background: 'oklch(0.55042 0.02697 344.05 / 1)',
+        foreground: 'oklch(0.985 0.006 265 / 1)',
+        surface: 'oklch(0.5565 0.02697 344.05 / 1)',
+        surfaceForeground: 'oklch(0.985 0.006 265 / 1)',
+        accent: 'oklch(0.50545 0.15 341.6 / 1)',
+        accentForeground: 'oklch(0.985 0.0066 292 / 1)'
       }
     },
     {
@@ -179,11 +179,11 @@ export const dawnToDusk = defineThemeSystem({
       phase: 'night',
       tokens: {
         background: 'oklch(0.15 0.028 265 / 1)',
-        foreground: 'oklch(0.7549 0.015 265 / 1)',
+        foreground: 'oklch(0.985 0.006 265 / 1)',
         surface: 'oklch(0.2 0.028 265 / 1)',
-        surfaceForeground: 'oklch(0.7784 0.015 265 / 1)',
-        accent: 'oklch(0.78 0.105 292 / 1)',
-        accentForeground: 'oklch(0.328 0.01 292 / 1)'
+        surfaceForeground: 'oklch(0.985 0.006 265 / 1)',
+        accent: 'oklch(0.5038 0.15 292 / 1)',
+        accentForeground: 'oklch(0.985 0.0066 292 / 1)'
       }
     }
   ]

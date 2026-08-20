@@ -179,6 +179,70 @@ describe('fix hints', () => {
     }).toThrow(/No single token clears it/);
   });
 
+  it('names the other pairs in the message, not just in the data', () => {
+    // The structured `alsoUsedBy` is only half the job: the person reading a
+    // failing CI log sees the message, and a suggestion to darken a shared
+    // background without that warning is a suggestion to break a caption.
+    // Both texts sit just under a mid-grey page. Here lightening the shared
+    // background is the cheaper move, so the warning has to fire. Which token
+    // wins is not obvious - a page one step lighter flips it to darkening the
+    // text - which is the reason the message reports it rather than assuming.
+    const tight = {
+      background: 'oklch(0.55 0.02 90 / 1)',
+      foreground: 'oklch(0.5 0.02 90 / 1)',
+      caption: 'oklch(0.5 0.02 90 / 1)'
+    };
+    const shared = defineThemeSystem({
+      staticThemes,
+      roles: {
+        pairs: [
+          { bg: 'background', fg: 'foreground', min: 'AA' },
+          { bg: 'background', fg: 'caption', min: 'AA' }
+        ]
+      },
+      stops: [
+        { minute: 0, appearance: 'light', phase: 'a', tokens: tight },
+        { minute: 720, appearance: 'light', phase: 'b', tokens: tight }
+      ]
+    });
+    let message = '';
+    try {
+      assertContrast(shared);
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toMatch(/is also used by/);
+    expect(message).toMatch(/so check those after moving it/);
+  });
+
+  it('blends achromatic tokens without inventing a hue', () => {
+    // A pure grey has no hue to contribute. Blending one toward a chromatic
+    // colour has to borrow the other end's hue rather than default to 0,
+    // which would swing a fade to neutral through red.
+    const greyNight = {
+      background: 'oklch(0.46 0 none / 1)',
+      foreground: 'oklch(0.86 0 none / 1)',
+      caption: 'oklch(0.86 0 none / 1)'
+    };
+    const system = defineThemeSystem({
+      staticThemes,
+      roles: onePair,
+      stops: [
+        { minute: 0, appearance: 'dark', phase: 'night', tokens: greyNight },
+        {
+          minute: 600,
+          appearance: 'dark',
+          phase: 'late',
+          tokens: staticThemes.dark
+        }
+      ]
+    });
+    const violations = findRenderedPathViolations(system, { level: 'AAA' });
+    expect(violations.length).toBeGreaterThan(0);
+    // Reached the blend at all, and produced usable suggestions from it.
+    expect(must(violations[0], 'violation').fixes.length).toBeGreaterThan(0);
+  });
+
   it('carries fixes on rendered-path violations too', () => {
     const night = {
       background: 'oklch(0.46 0.03 265 / 1)',

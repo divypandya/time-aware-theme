@@ -7,14 +7,33 @@ import {
   inspect,
   inspectSchedule
 } from '../src/inspect.js';
+import { blossom } from '../src/presets/blossom.js';
 import { contrastFirst } from '../src/presets/contrast-first.js';
 import { dawnToDusk } from '../src/presets/dawn-to-dusk.js';
+import { ember } from '../src/presets/ember.js';
+import { forest } from '../src/presets/forest.js';
+import { meridian } from '../src/presets/meridian.js';
+import { nocturne } from '../src/presets/nocturne.js';
 import { paper } from '../src/presets/paper.js';
+import { slate } from '../src/presets/slate.js';
 import { tidal } from '../src/presets/tidal.js';
+
+const shipped = [
+  dawnToDusk,
+  tidal,
+  paper,
+  contrastFirst,
+  nocturne,
+  ember,
+  forest,
+  meridian,
+  blossom,
+  slate
+];
 
 describe('hold windows', () => {
   it('finds one in each direction for every shipped preset', () => {
-    for (const preset of [dawnToDusk, tidal, paper, contrastFirst]) {
+    for (const preset of shipped) {
       const { holds } = inspectSchedule(preset);
       expect(`${preset.name}: ${holds.length}`).toBe(`${preset.name}: 2`);
       for (const hold of holds) {
@@ -31,16 +50,45 @@ describe('hold windows', () => {
     }
   });
 
-  it('reports the widest step across all tokens, not just the background', () => {
-    // The background is what the solver minimises, so quoting only that
-    // understates the visible change. In every warm preset a foreground on an
-    // accent moves further than the page does.
-    const [first] = inspectSchedule(dawnToDusk).holds;
-    const hold = must(first, 'hold');
-    expect(hold.widestToken).toBe('accentForeground');
-    expect(hold.widestJump).toBeGreaterThan(
-      must(hold.jumps.background, 'background jump')
-    );
+  it('never moves an accent pair, in any shipped preset', () => {
+    // The guarantee behind fixed-polarity accents. In 0.3.0 accentForeground
+    // was the single largest jump in every AA preset - 0.659 in lightness,
+    // larger than the page itself - because a mid-lightness accent let its
+    // text pick a different side in different phases. A primary button
+    // inverting at dusk is not something anyone asked for.
+    // Not exactly zero: a hold freezes the tokens for a minute, so whatever
+    // the accent would have glided during that minute is counted here too.
+    // 0.002 is that glide; 0.659 was a flip. The bar separates the two.
+    const GLIDE = 0.01;
+    for (const preset of shipped) {
+      for (const hold of inspectSchedule(preset).holds) {
+        for (const token of ['accent', 'accentForeground'] as const) {
+          const moved = must(hold.jumps[token], `${token} jump`);
+          const verdict = moved < GLIDE ? 'glides' : moved.toFixed(3);
+          expect(`${preset.name ?? '?'} ${token} ${verdict}`).toBe(
+            `${preset.name ?? '?'} ${token} glides`
+          );
+        }
+      }
+    }
+  });
+
+  it('keeps the page itself gliding through the switch', () => {
+    // The point of 0.4.0. The text still flips - it has to, since gliding it
+    // would pass through mid-grey on a mid-grey page - but the background now
+    // crosses continuously instead of lurching half its daily range.
+    for (const preset of shipped) {
+      // AAA cannot reach a small step: the gap closes only when the required
+      // ratio squared is at most 21, and 7^2 is 49. That is a fact about the
+      // ratio, not a shortfall in this preset.
+      const budget = preset.name === 'contrast-first' ? 0.3 : 0.05;
+      for (const hold of inspectSchedule(preset).holds) {
+        const background = must(hold.jumps.background, 'background jump');
+        expect(
+          `${preset.name ?? '?'} ${background < budget ? 'ok' : background.toFixed(3)}`
+        ).toBe(`${preset.name ?? '?'} ok`);
+      }
+    }
   });
 
   it('shows up in the report even when nothing is wrong', () => {

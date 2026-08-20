@@ -88,6 +88,16 @@ export interface TimePreviewSliderProps {
   readonly label?: string;
   readonly className?: string;
   readonly inputClassName?: string;
+  /**
+   * Controlled value. Omit and the slider tracks its own.
+   *
+   * Needed by anything that also moves time on its own - a play-through-the-day
+   * button being the obvious case. Without it the caller can drive the theme
+   * via `setPreviewMinute` but cannot move the thumb, so the control ends up
+   * showing one time while the page shows another.
+   */
+  readonly minute?: number;
+  readonly onMinuteChange?: (minute: number) => void;
   readonly children?: (state: {
     readonly minute: number;
     readonly previewing: boolean;
@@ -106,21 +116,28 @@ export function TimePreviewSlider({
   label = 'Preview time of day',
   className,
   inputClassName,
+  minute: controlledMinute,
+  onMinuteChange,
   children
 }: TimePreviewSliderProps): React.ReactElement {
   const { mode, setPreviewMinute, clearPreview } = useTimeAwareTheme();
-  const [minute, setMinute] = useState(() => currentMinute());
+  const [ownMinute, setOwnMinute] = useState(() => currentMinute());
   const [previewing, setPreviewing] = useState(false);
   const id = useId();
   const disabled = mode !== 'time-aware';
+  const controlled = controlledMinute !== undefined;
+  const minute = controlled ? controlledMinute : ownMinute;
 
   const handleChange = useCallback(
     (next: number) => {
-      setMinute(next);
+      if (!controlled) {
+        setOwnMinute(next);
+      }
+      onMinuteChange?.(next);
       setPreviewing(true);
       setPreviewMinute(next);
     },
-    [setPreviewMinute]
+    [controlled, onMinuteChange, setPreviewMinute]
   );
 
   const handleRelease = useCallback(() => {

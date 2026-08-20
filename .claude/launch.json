@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "react-example",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "examples/react"],
+      "port": 5173,
+      "autoPort": true
+    }
+  ]
+}

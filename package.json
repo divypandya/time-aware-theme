@@ -1,6 +1,6 @@
 {
   "name": "@divypandya/time-aware-theme",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Time-aware theme resolver, DOM controller, React adapter, and test utilities.",
   "type": "module",
   "license": "MIT",
@@ -85,6 +85,30 @@
     "./presets/paper": {
       "types": "./dist/presets/paper.d.ts",
       "import": "./dist/presets/paper.js"
+    },
+    "./presets/nocturne": {
+      "types": "./dist/presets/nocturne.d.ts",
+      "import": "./dist/presets/nocturne.js"
+    },
+    "./presets/ember": {
+      "types": "./dist/presets/ember.d.ts",
+      "import": "./dist/presets/ember.js"
+    },
+    "./presets/forest": {
+      "types": "./dist/presets/forest.d.ts",
+      "import": "./dist/presets/forest.js"
+    },
+    "./presets/meridian": {
+      "types": "./dist/presets/meridian.d.ts",
+      "import": "./dist/presets/meridian.js"
+    },
+    "./presets/blossom": {
+      "types": "./dist/presets/blossom.d.ts",
+      "import": "./dist/presets/blossom.js"
+    },
+    "./presets/slate": {
+      "types": "./dist/presets/slate.d.ts",
+      "import": "./dist/presets/slate.js"
     },
     "./package.json": "./package.json"
   },

@@ -6,8 +6,8 @@
 // by hand. Certified per second by scripts/certify.mjs.
 //
 // Switches:
-//   05:31  dawn -> sunrise, widest step 0.456 in lightness
-//   20:20  dusk -> night, widest step 0.420 in lightness
+//   05:53  dawn -> sunrise, widest step 0.032 in lightness
+//   20:54  dusk -> night, widest step 0.032 in lightness
 import { defineThemeSystem } from '../core.js';
 
 /**
@@ -18,19 +18,19 @@ export const tidal = defineThemeSystem({
   staticThemes: {
     light: {
       background: 'oklch(0.985 0.008 220 / 1)',
-      foreground: 'oklch(0.3944 0.015 220 / 1)',
+      foreground: 'oklch(0.145 0.015 220 / 1)',
       surface: 'oklch(0.95 0.008 220 / 1)',
-      surfaceForeground: 'oklch(0.3696 0.015 220 / 1)',
-      accent: 'oklch(0.5 0.14 255 / 1)',
-      accentForeground: 'oklch(0.997 0.0013 255 / 1)'
+      surfaceForeground: 'oklch(0.145 0.015 220 / 1)',
+      accent: 'oklch(0.492 0.1395 255 / 1)',
+      accentForeground: 'oklch(0.985 0.0062 255 / 1)'
     },
     dark: {
       background: 'oklch(0.15 0.03 250 / 1)',
-      foreground: 'oklch(0.7547 0.015 250 / 1)',
+      foreground: 'oklch(0.985 0.0063 250 / 1)',
       surface: 'oklch(0.2 0.03 250 / 1)',
-      surfaceForeground: 'oklch(0.7785 0.015 250 / 1)',
-      accent: 'oklch(0.79 0.11 205 / 1)',
-      accentForeground: 'oklch(0.3524 0.01 205 / 1)'
+      surfaceForeground: 'oklch(0.985 0.0063 250 / 1)',
+      accent: 'oklch(0.45 0.0756 228 / 1)',
+      accentForeground: 'oklch(0.985 0.0078 228 / 1)'
     }
   },
   roles: {
@@ -47,11 +47,11 @@ export const tidal = defineThemeSystem({
       phase: 'night',
       tokens: {
         background: 'oklch(0.15 0.03 250 / 1)',
-        foreground: 'oklch(0.7547 0.015 250 / 1)',
+        foreground: 'oklch(0.985 0.0063 250 / 1)',
         surface: 'oklch(0.2 0.03 250 / 1)',
-        surfaceForeground: 'oklch(0.7785 0.015 250 / 1)',
-        accent: 'oklch(0.79 0.11 205 / 1)',
-        accentForeground: 'oklch(0.3524 0.01 205 / 1)'
+        surfaceForeground: 'oklch(0.985 0.0063 250 / 1)',
+        accent: 'oklch(0.45 0.0756 228 / 1)',
+        accentForeground: 'oklch(0.985 0.0078 228 / 1)'
       }
     },
     {
@@ -60,38 +60,38 @@ export const tidal = defineThemeSystem({
       phase: 'dawn',
       tokens: {
         background: 'oklch(0.2 0.037 235 / 1)',
-        foreground: 'oklch(0.7788 0.015 235 / 1)',
+        foreground: 'oklch(0.985 0.0072 235 / 1)',
         surface: 'oklch(0.25 0.037 235 / 1)',
-        surfaceForeground: 'oklch(0.8153 0.015 235 / 1)',
-        accent: 'oklch(0.8 0.11 195 / 1)',
-        accentForeground: 'oklch(0.3618 0.01 195 / 1)'
+        surfaceForeground: 'oklch(0.985 0.0072 235 / 1)',
+        accent: 'oklch(0.45 0.0834 236 / 1)',
+        accentForeground: 'oklch(0.985 0.0071 236 / 1)'
       }
     },
     {
-      minute: 331,
+      minute: 353,
       appearance: 'dark',
       phase: 'dawn',
       jumpAfter: true,
       tokens: {
-        background: 'oklch(0.39892 0.03106 228.54167 / 1)',
-        foreground: 'oklch(0.7788 0.015 235 / 1)',
-        surface: 'oklch(0.42696 0.03106 228.54167 / 1)',
-        surfaceForeground: 'oklch(0.8153 0.015 235 / 1)',
-        accent: 'oklch(0.72767 0.1107 207.91667 / 1)',
-        accentForeground: 'oklch(0.3618 0.01 195 / 1)'
+        background: 'oklch(0.54008 0.02684 223.95833 / 1)',
+        foreground: 'oklch(0.985 0.0072 235 / 1)',
+        surface: 'oklch(0.55254 0.02684 223.95833 / 1)',
+        surfaceForeground: 'oklch(0.985 0.0072 235 / 1)',
+        accent: 'oklch(0.46683 0.09329 239.975 / 1)',
+        accentForeground: 'oklch(0.985 0.0071 236 / 1)'
       }
     },
     {
-      minute: 332,
+      minute: 354,
       appearance: 'light',
       phase: 'dawn',
       tokens: {
-        background: 'oklch(0.8545 0.01745 213.75 / 1)',
-        foreground: 'oklch(0.3842 0.015 210 / 1)',
-        surface: 'oklch(0.83225 0.01745 213.75 / 1)',
-        surfaceForeground: 'oklch(0.3588 0.015 210 / 1)',
-        accent: 'oklch(0.562 0.1123 237.5 / 1)',
-        accentForeground: 'oklch(1 0 245 / 1)'
+        background: 'oklch(0.57217 0.02588 222.91667 / 1)',
+        foreground: 'oklch(0.145 0.015 210 / 1)',
+        surface: 'oklch(0.58108 0.02588 222.91667 / 1)',
+        surfaceForeground: 'oklch(0.145 0.015 210 / 1)',
+        accent: 'oklch(0.46842 0.09423 240.35 / 1)',
+        accentForeground: 'oklch(0.985 0.0065 245 / 1)'
       }
     },
     {
@@ -100,11 +100,11 @@ export const tidal = defineThemeSystem({
       phase: 'sunrise',
       tokens: {
         background: 'oklch(0.97 0.014 210 / 1)',
-        foreground: 'oklch(0.3842 0.015 210 / 1)',
+        foreground: 'oklch(0.145 0.015 210 / 1)',
         surface: 'oklch(0.935 0.014 210 / 1)',
-        surfaceForeground: 'oklch(0.3588 0.015 210 / 1)',
-        accent: 'oklch(0.52 0.1127 245 / 1)',
-        accentForeground: 'oklch(1 0 245 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 210 / 1)',
+        accent: 'oklch(0.4881 0.1058 245 / 1)',
+        accentForeground: 'oklch(0.985 0.0065 245 / 1)'
       }
     },
     {
@@ -113,11 +113,11 @@ export const tidal = defineThemeSystem({
       phase: 'midday',
       tokens: {
         background: 'oklch(0.985 0.008 220 / 1)',
-        foreground: 'oklch(0.3944 0.015 220 / 1)',
+        foreground: 'oklch(0.145 0.015 220 / 1)',
         surface: 'oklch(0.95 0.008 220 / 1)',
-        surfaceForeground: 'oklch(0.3696 0.015 220 / 1)',
-        accent: 'oklch(0.5 0.14 255 / 1)',
-        accentForeground: 'oklch(0.997 0.0013 255 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 220 / 1)',
+        accent: 'oklch(0.492 0.1395 255 / 1)',
+        accentForeground: 'oklch(0.985 0.0062 255 / 1)'
       }
     },
     {
@@ -126,11 +126,11 @@ export const tidal = defineThemeSystem({
       phase: 'afternoon',
       tokens: {
         background: 'oklch(0.955 0.014 200 / 1)',
-        foreground: 'oklch(0.3734 0.015 200 / 1)',
+        foreground: 'oklch(0.145 0.015 200 / 1)',
         surface: 'oklch(0.92 0.014 200 / 1)',
-        surfaceForeground: 'oklch(0.3473 0.015 200 / 1)',
-        accent: 'oklch(0.51 0.1006 240 / 1)',
-        accentForeground: 'oklch(1 0 240 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 200 / 1)',
+        accent: 'oklch(0.487 0.096 240 / 1)',
+        accentForeground: 'oklch(0.985 0.0068 240 / 1)'
       }
     },
     {
@@ -139,38 +139,38 @@ export const tidal = defineThemeSystem({
       phase: 'dusk',
       tokens: {
         background: 'oklch(0.925 0.022 215 / 1)',
-        foreground: 'oklch(0.3518 0.015 215 / 1)',
+        foreground: 'oklch(0.145 0.015 215 / 1)',
         surface: 'oklch(0.89 0.022 215 / 1)',
-        surfaceForeground: 'oklch(0.3239 0.015 215 / 1)',
-        accent: 'oklch(0.52 0.1267 250 / 1)',
-        accentForeground: 'oklch(1 0 250 / 1)'
+        surfaceForeground: 'oklch(0.145 0.015 215 / 1)',
+        accent: 'oklch(0.4897 0.1193 250 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 250 / 1)'
       }
     },
     {
-      minute: 1220,
+      minute: 1254,
       appearance: 'light',
       phase: 'dusk',
       jumpAfter: true,
       tokens: {
-        background: 'oklch(0.79583 0.02333 220.83333 / 1)',
-        foreground: 'oklch(0.3518 0.015 215 / 1)',
-        surface: 'oklch(0.775 0.02333 220.83333 / 1)',
-        surfaceForeground: 'oklch(0.3239 0.015 215 / 1)',
-        accent: 'oklch(0.565 0.12392 242.5 / 1)',
-        accentForeground: 'oklch(1 0 250 / 1)'
+        background: 'oklch(0.57625 0.0256 230.75 / 1)',
+        foreground: 'oklch(0.145 0.015 215 / 1)',
+        surface: 'oklch(0.5795 0.0256 230.75 / 1)',
+        surfaceForeground: 'oklch(0.145 0.015 215 / 1)',
+        accent: 'oklch(0.47184 0.09964 240.1 / 1)',
+        accentForeground: 'oklch(0.985 0.0063 250 / 1)'
       }
     },
     {
-      minute: 1221,
+      minute: 1255,
       appearance: 'dark',
       phase: 'dusk',
       tokens: {
-        background: 'oklch(0.37604 0.02767 239.79167 / 1)',
-        foreground: 'oklch(0.7547 0.015 250 / 1)',
-        surface: 'oklch(0.40125 0.02767 239.79167 / 1)',
-        surfaceForeground: 'oklch(0.7785 0.015 250 / 1)',
-        accent: 'oklch(0.71125 0.11487 218.125 / 1)',
-        accentForeground: 'oklch(0.3524 0.01 205 / 1)'
+        background: 'oklch(0.54396 0.02593 232.20833 / 1)',
+        foreground: 'oklch(0.985 0.0063 250 / 1)',
+        surface: 'oklch(0.55075 0.02593 232.20833 / 1)',
+        surfaceForeground: 'oklch(0.985 0.0063 250 / 1)',
+        accent: 'oklch(0.47018 0.09781 239.18333 / 1)',
+        accentForeground: 'oklch(0.985 0.0078 228 / 1)'
       }
     },
     {
@@ -179,11 +179,11 @@ export const tidal = defineThemeSystem({
       phase: 'night',
       tokens: {
         background: 'oklch(0.15 0.03 250 / 1)',
-        foreground: 'oklch(0.7547 0.015 250 / 1)',
+        foreground: 'oklch(0.985 0.0063 250 / 1)',
         surface: 'oklch(0.2 0.03 250 / 1)',
-        surfaceForeground: 'oklch(0.7785 0.015 250 / 1)',
-        accent: 'oklch(0.79 0.11 205 / 1)',
-        accentForeground: 'oklch(0.3524 0.01 205 / 1)'
+        surfaceForeground: 'oklch(0.985 0.0063 250 / 1)',
+        accent: 'oklch(0.45 0.0756 228 / 1)',
+        accentForeground: 'oklch(0.985 0.0078 228 / 1)'
       }
     }
   ]

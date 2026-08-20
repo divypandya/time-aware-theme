@@ -7,7 +7,7 @@ import {
   sampleSchedule
 } from '../src/testing.js';
 import { createFixtureSystem } from './fixture.js';
-import { demoThemeSystem as reactDemo } from '../examples/react/src/theme-system.js';
+import { presets as reactPresets } from '../examples/react/src/presets.js';
 
 /**
  * The fixture is the schedule consumers copy from. Before v0.2 it failed WCAG
@@ -68,16 +68,28 @@ describe('fixture certification', () => {
  * schedule this repo ships is contrast-certified.
  */
 describe('examples/react certification', () => {
-  it('meets every declared role contract at every minute', () => {
-    expect(findContrastViolations(reactDemo)).toEqual([]);
+  it('offers only schedules that are themselves certified', () => {
+    // The example used to carry its own hand-written schedule, which had to be
+    // swept here because scripts/certify.mjs runs against built JS and cannot
+    // reach it. It now offers the ten shipped presets instead, so what matters
+    // is that the picker cannot gain an uncertified entry: anything listed
+    // here is swept, whether or not it is one of ours.
+    expect(reactPresets.length).toBe(10);
+    for (const entry of reactPresets) {
+      expect(
+        `${entry.id}: ${findContrastViolations(entry.system).length}`
+      ).toBe(`${entry.id}: 0`);
+    }
   });
 
   it('never leaves the sRGB gamut', () => {
-    const outOfGamut = sampleSchedule(reactDemo).flatMap((snapshot) =>
-      Object.entries(snapshot.tokens)
-        .filter(([, color]) => isOutOfSrgbGamut(color))
-        .map(([key]) => `${key}@${snapshot.minute}`)
-    );
-    expect(outOfGamut).toEqual([]);
+    for (const entry of reactPresets) {
+      const outOfGamut = sampleSchedule(entry.system).flatMap((snapshot) =>
+        Object.entries(snapshot.tokens)
+          .filter(([, color]) => isOutOfSrgbGamut(color))
+          .map(([key]) => `${key}@${snapshot.minute}`)
+      );
+      expect(`${entry.id}: ${outOfGamut.length}`).toBe(`${entry.id}: 0`);
+    }
   });
 });

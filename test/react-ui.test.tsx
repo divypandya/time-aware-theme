@@ -66,7 +66,17 @@ function mountWith(
     </TimeAwareThemeProvider>,
     host
   );
-  return { host, controller, clock };
+  const rerender = (next: React.ReactNode) => {
+    act(() => {
+      root?.render(
+        <TimeAwareThemeProvider controller={controller}>
+          {next}
+        </TimeAwareThemeProvider>
+      );
+    });
+  };
+
+  return { host, controller, clock, rerender };
 }
 
 /**
@@ -155,6 +165,42 @@ describe('TimePreviewSlider', () => {
     const input = host.querySelector<HTMLInputElement>('input[type="range"]');
     expect(input?.disabled).toBe(true);
     expect(host.querySelector('[data-disabled]')).not.toBeNull();
+  });
+
+  it('follows a controlled minute, so a caller can drive time', () => {
+    // Without this the slider owns its value outright, and anything else that
+    // moves time - a play-through-the-day button being the obvious case - can
+    // change the theme but not the thumb, leaving the control showing one time
+    // while the page shows another.
+    const { host, rerender } = mountWith(<TimePreviewSlider minute={120} />);
+    const input = host.querySelector<HTMLInputElement>('input[type="range"]');
+    expect(input?.value).toBe('120');
+
+    rerender(<TimePreviewSlider minute={780} />);
+    expect(
+      host.querySelector<HTMLInputElement>('input[type="range"]')?.value
+    ).toBe('780');
+  });
+
+  it('reports changes to a controlled caller instead of self-updating', () => {
+    const seen: number[] = [];
+    const { host } = mountWith(
+      <TimePreviewSlider
+        minute={120}
+        onMinuteChange={(next) => seen.push(next)}
+      />
+    );
+    const input = host.querySelector<HTMLInputElement>('input[type="range"]');
+    act(() => {
+      if (input) {
+        setRangeValue(input, 300);
+      }
+    });
+    expect(seen).toEqual([300]);
+    // Still 120: the caller owns the value and has not moved it yet.
+    expect(
+      host.querySelector<HTMLInputElement>('input[type="range"]')?.value
+    ).toBe('120');
   });
 
   it('is labelled and spans exactly one day', () => {

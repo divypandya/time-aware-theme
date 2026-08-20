@@ -9,15 +9,14 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
 }
 
 body {
   display: flex;
-  align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  padding: 2rem 1rem;
   background: var(--tat-background);
   color: var(--tat-foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -26,11 +25,47 @@ body {
     color 0.35s ease;
 }
 
-.card {
-  width: min(90vw, 440px);
-  padding: 2rem;
-  border-radius: 20px;
-  border: 1px solid var(--tat-accent);
+/*
+  Without this the browser fades between two clean values at the switch and
+  paints its way through the crossing. The controller sets this attribute for
+  the single frame where the change is instant.
+*/
+[data-theme-flip] * {
+  transition: none !important;
+}
+
+.shell {
+  width: min(92vw, 680px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* Controlled by the app, so the play button and the thumb stay in step. */
+.scrub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.scrub > label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.scrub > input[type='range'] {
+  width: 100%;
+  accent-color: var(--tat-accent);
+  margin: 0;
+}
+
+.scrub[data-disabled] {
+  opacity: 0.45;
+}
+
+.masthead {
   text-align: center;
 }
 
@@ -44,45 +79,151 @@ body {
 }
 
 .phase {
-  margin: 0.25rem 0 1.5rem;
+  margin: 0.25rem 0 0;
   opacity: 0.75;
   text-transform: capitalize;
 }
 
-.swatches {
+.meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.55;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+}
+
+.preset {
   display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.7rem;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklch, var(--tat-foreground) 25%, transparent);
+  background: var(--tat-surface);
+  color: var(--tat-surface-foreground);
+}
+
+.preset[aria-pressed='true'] {
+  border-color: var(--tat-accent);
+  outline: 2px solid var(--tat-accent);
+  outline-offset: -1px;
+}
+
+.preset-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.preset-note {
+  font-size: 0.72rem;
+  opacity: 0.6;
+}
+
+.swatch-row {
+  display: flex;
+  width: 100%;
+  height: 26px;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .swatch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
+  flex: 1;
+}
+
+.certification {
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklch, var(--tat-foreground) 20%, transparent);
+  padding: 1rem 1.1rem;
+  background: var(--tat-surface);
+  color: var(--tat-surface-foreground);
+}
+
+.certification h2 {
+  margin: 0 0 0.6rem;
   font-size: 0.75rem;
-  opacity: 0.8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.swatch-color {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: 1px solid currentColor;
+.held {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--tat-accent);
+  color: var(--tat-accent-foreground);
+  letter-spacing: 0.04em;
 }
 
-input[type='range'] {
+.certification table {
   width: 100%;
-  accent-color: var(--tat-accent);
-  margin: 0.5rem 0 1.5rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.certification th,
+.certification td {
+  text-align: left;
+  padding: 0.3rem 0;
+  font-weight: 400;
+}
+
+.certification thead th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.5;
+}
+
+.certification tbody th {
+  opacity: 0.85;
+}
+
+.certification td:last-child {
+  text-align: right;
+  font-weight: 600;
+  color: color-mix(in oklch, var(--tat-foreground) 70%, red);
+}
+
+.certification td[data-pass] {
+  color: inherit;
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
 }
 
 .modes {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
-  margin-bottom: 1rem;
+}
+
+.play {
+  border-color: color-mix(in oklch, var(--tat-foreground) 35%, transparent);
+}
+
+.play[aria-pressed='true'] {
+  background: var(--tat-accent);
+  color: var(--tat-accent-foreground);
+  border-color: var(--tat-accent);
 }
 
 button {
@@ -95,11 +236,24 @@ button {
   cursor: pointer;
 }
 
-button[aria-pressed='true'] {
-  background: var(--tat-accent);
-  color: var(--tat-background);
+button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.play-button {
-  width: 100%;
+.modes button[aria-pressed='true'] {
+  background: var(--tat-accent);
+  color: var(--tat-accent-foreground);
+}
+
+.footnote {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.5;
+  text-align: center;
+  line-height: 1.6;
+}
+
+code {
+  font-size: 0.95em;
 }

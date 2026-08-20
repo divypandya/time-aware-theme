@@ -13,7 +13,13 @@ export default defineConfig({
     'src/presets/dawn-to-dusk.ts',
     'src/presets/tidal.ts',
     'src/presets/contrast-first.ts',
-    'src/presets/paper.ts'
+    'src/presets/paper.ts',
+    'src/presets/nocturne.ts',
+    'src/presets/ember.ts',
+    'src/presets/forest.ts',
+    'src/presets/meridian.ts',
+    'src/presets/blossom.ts',
+    'src/presets/slate.ts'
   ],
   format: ['esm'],
   target: 'es2022',
@@ -21,9 +27,9 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   minify: true,
-  // The four presets each embed a whole theme system and all of them pull in
+  // The ten presets each embed a whole theme system and all of them pull in
   // core. Splitting hoists that into one shared chunk instead of inlining the
-  // resolver four times.
+  // resolver ten times.
   splitting: true,
   treeshake: true,
   outDir: 'dist',
